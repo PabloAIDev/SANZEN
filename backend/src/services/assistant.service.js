@@ -17,6 +17,11 @@ const ALLOWED_TARGETS = [
 
 async function generateAssistantResponse({ message, context, history = [] }) {
   const sanitizedHistory = normalizeHistory(history);
+  const normalizedMessage = normalizarMensaje(resolveMessageWithHistory(message, sanitizedHistory));
+
+  if (preguntaPorRecomendacion(normalizedMessage)) {
+    return buildRecommendationResponse(context, 'rules');
+  }
 
   if (!process.env.OPENAI_API_KEY) {
     return buildFallbackResponse(message, context, sanitizedHistory, 'fallback');
@@ -93,6 +98,8 @@ function buildSystemPrompt() {
     'Usa el contexto actual y la conversacion reciente para entender preguntas encadenadas.',
     'No inventes datos, no digas que has ejecutado acciones y no cambies pedidos, perfiles ni pagos.',
     'Solo puedes sugerir navegacion cuando realmente ayude al usuario.',
+    'Nunca recomiendes platos cuyos alergenos sean incompatibles con el perfil del usuario.',
+    'Si existe compatibleCatalog o recommendedCatalog, solo puedes recomendar platos contenidos en esas listas.',
     'Reglas de SANZEN:',
     '- Pedido individual: minimo de 20 EUR.',
     '- Suscripcion semanal: minimo de 5 platos.',
@@ -109,6 +116,9 @@ function buildSystemPrompt() {
 }
 
 function buildModelContext(context) {
+  const compatibleCatalog = getCompatibleCatalog(context);
+  const recommendedCatalog = getRecommendedCatalog(context);
+
   return {
     screen: context.screen,
     userAuthenticated: context.userAuthenticated,
@@ -152,6 +162,24 @@ function buildModelContext(context) {
     },
     firstOrder: context.firstOrder,
     lastOrder: context.lastOrder,
+    compatibleCatalog: compatibleCatalog.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      price: item.price,
+      calories: item.calories,
+      healthScore: item.healthScore,
+      allergens: item.allergens
+    })),
+    recommendedCatalog: recommendedCatalog.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      price: item.price,
+      calories: item.calories,
+      healthScore: item.healthScore,
+      allergens: item.allergens
+    })),
     catalog: context.catalog.map((item) => ({
       id: item.id,
       name: item.name,
@@ -322,11 +350,7 @@ function buildFallbackResponse(message, context, history, source) {
     normalizedMessage.includes('qué plato') ||
     normalizedMessage.includes('que plato')
   ) {
-    return {
-      message: recomendarPlatos(context),
-      actions: [{ type: 'navigate', target: '/menu', label: 'Ver menú' }],
-      source
-    };
+    return buildRecommendationResponse(context, source);
   }
 
   return {
@@ -391,7 +415,24 @@ function preguntaPorBloqueo(message) {
     message.includes('no me deja');
 }
 
+function preguntaPorRecomendacion(message) {
+  return message.includes('recomi') ||
+    message.includes('qué plato') ||
+    message.includes('que plato');
+}
+
 function responderBloqueo(context) {
+  if (!context.userAuthenticated) {
+    return 'Para finalizar el pedido necesitas iniciar sesión o crear una cuenta.';
+  }
+
+  if (
+    (context.screen === 'perfil' || context.screen === 'pago') &&
+    !context.profile.profileCompleteForPayment
+  ) {
+    return 'Ahora mismo no puedes continuar porque tu perfil todavía no está listo para pagar. Necesitas completar dirección y tarjeta antes de confirmar el pedido.';
+  }
+
   if (!context.cart.hasItems) {
     return 'Todavía no tienes platos en el carrito. Añade algunos platos antes de continuar con el pedido.';
   }
@@ -406,10 +447,6 @@ function responderBloqueo(context) {
     return `Tu suscripción aún no está completa. Necesitas al menos ${context.subscription.minimumItems} platos y ahora mismo te faltan ${missingItems}.`;
   }
 
-  if (!context.userAuthenticated) {
-    return 'Para finalizar el pedido necesitas iniciar sesión o crear una cuenta.';
-  }
-
   if (!context.profile.profileCompleteForPayment) {
     return 'Tu perfil todavía no está listo para pagar. Necesitas completar dirección y tarjeta antes de confirmar el pedido.';
   }
@@ -418,6 +455,17 @@ function responderBloqueo(context) {
 }
 
 function accionesParaBloqueo(context) {
+  if (!context.userAuthenticated) {
+    return [{ type: 'navigate', target: '/login', label: 'Iniciar sesión' }];
+  }
+
+  if (
+    (context.screen === 'perfil' || context.screen === 'pago') &&
+    !context.profile.profileCompleteForPayment
+  ) {
+    return [{ type: 'navigate', target: '/perfil', label: 'Completar perfil' }];
+  }
+
   if (!context.cart.hasItems) {
     return [{ type: 'navigate', target: '/menu', label: 'Añadir platos' }];
   }
@@ -428,10 +476,6 @@ function accionesParaBloqueo(context) {
 
   if (context.cart.mode === 'suscripcion' && !context.subscription.complete) {
     return [{ type: 'navigate', target: '/menu?subscriptionSelection=1', label: 'Completar suscripción' }];
-  }
-
-  if (!context.userAuthenticated) {
-    return [{ type: 'navigate', target: '/login', label: 'Iniciar sesión' }];
   }
 
   if (!context.profile.profileCompleteForPayment) {
@@ -585,36 +629,75 @@ function buildDefaultActions(context) {
 }
 
 function recomendarPlatos(context) {
-  const compatibles = context.catalog
-    .filter((plato) => esCompatibleConPerfil(plato, context.profile))
-    .sort((a, b) => puntuarPlato(b, context.profile) - puntuarPlato(a, context.profile))
-    .slice(0, 3);
+  const compatibles = getRecommendedCatalog(context);
 
   if (compatibles.length === 0) {
     return 'No veo platos claramente compatibles con tu perfil actual. Puedes revisar tus filtros o tu perfil alimentario para afinar la recomendación.';
   }
 
+  const restricciones = construirTextoRestriccionesPerfil(context.profile);
   const nombres = compatibles
     .map((plato) => `${plato.name} (${plato.price.toFixed(2)} €, HealthScore ${plato.healthScore})`)
     .join(', ');
 
   if (context.profile.objective === 'perder-peso') {
-    return `Según tu objetivo de perder peso, te recomendaría ${nombres}. Son opciones más favorables por equilibrio nutricional y perfil general.`;
+    return `Según tu objetivo de perder peso${restricciones}, te recomendaría ${nombres}. Son opciones más favorables por equilibrio nutricional y perfil general.`;
   }
 
   if (context.profile.objective === 'masa-muscular') {
-    return `Según tu objetivo de masa muscular, te recomendaría ${nombres}. Son platos que encajan mejor con una búsqueda de mayor aporte proteico.`;
+    return `Según tu objetivo de masa muscular${restricciones}, te recomendaría ${nombres}. Son platos que encajan mejor con una búsqueda de mayor aporte proteico.`;
   }
 
-  return `Según tu perfil actual, te recomendaría ${nombres}.`;
+  return `Según tu perfil actual${restricciones}, te recomendaría ${nombres}.`;
 }
 
 function esCompatibleConPerfil(plato, profile) {
-  if (profile.allergies.length > 0 && plato.allergens.some((allergen) => profile.allergies.includes(allergen))) {
+  const alergiasNormalizadas = new Set((profile.allergies ?? []).map(normalizarClaveComparacion));
+
+  if (
+    alergiasNormalizadas.size > 0 &&
+    plato.allergens.some((allergen) => alergiasNormalizadas.has(normalizarClaveComparacion(allergen)))
+  ) {
     return false;
   }
 
   return true;
+}
+
+function getCompatibleCatalog(context) {
+  return context.catalog.filter((plato) => esCompatibleConPerfil(plato, context.profile));
+}
+
+function getRecommendedCatalog(context) {
+  return getCompatibleCatalog(context)
+    .sort((a, b) => puntuarPlato(b, context.profile) - puntuarPlato(a, context.profile))
+    .slice(0, 3);
+}
+
+function buildRecommendationResponse(context, source) {
+  return {
+    message: recomendarPlatos(context),
+    actions: [{ type: 'navigate', target: '/menu', label: 'Ver menú' }],
+    source
+  };
+}
+
+function construirTextoRestriccionesPerfil(profile) {
+  const alergias = Array.isArray(profile.allergies) ? profile.allergies.filter(Boolean) : [];
+
+  if (alergias.length === 0) {
+    return '';
+  }
+
+  return ` y evitando alérgenos incompatibles como ${alergias.join(', ')}`;
+}
+
+function normalizarClaveComparacion(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
 }
 
 function puntuarPlato(plato, profile) {

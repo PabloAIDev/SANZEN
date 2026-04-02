@@ -33,10 +33,11 @@
             type="text"
             [attr.autocomplete]="obtenerAutocompleteBasico('name')"
             placeholder="Tu nombre"
+            (ionInput)="actualizarNombre($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('nombre')) {
-          <p class="campo-error">El nombre debe tener al menos 2 caracteres.</p>
+          <p class="campo-error">El nombre debe tener al menos 2 letras y no puede incluir números.</p>
         }
 
         <ion-item lines="inset">
@@ -168,6 +169,7 @@
             type="text"
             [attr.autocomplete]="obtenerAutocompleteDireccion('street-address')"
             placeholder="Calle Mayor 12"
+            (ionInput)="actualizarCalleNumero($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('calleNumero')) {
@@ -182,10 +184,11 @@
             type="text"
             [attr.autocomplete]="obtenerAutocompleteDireccion('address-level2')"
             placeholder="Madrid"
+            (ionInput)="actualizarCiudad($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('ciudad')) {
-          <p class="campo-error">La ciudad debe tener al menos 2 caracteres.</p>
+          <p class="campo-error">La ciudad debe tener al menos 2 letras y no puede incluir números.</p>
         }
 
         <ion-item lines="inset">
@@ -213,10 +216,11 @@
             type="text"
             [attr.autocomplete]="obtenerAutocompleteDireccion('address-level1')"
             placeholder="Madrid"
+            (ionInput)="actualizarProvincia($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('provincia')) {
-          <p class="campo-error">La provincia debe tener al menos 2 caracteres.</p>
+          <p class="campo-error">La provincia debe tener al menos 2 letras y no puede incluir números.</p>
         }
 
         <ion-item lines="inset">
@@ -264,10 +268,11 @@
             type="text"
             [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-name')"
             placeholder="Cómo aparece en la tarjeta"
+            (ionInput)="actualizarNombreTitular($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('nombreTitular')) {
-          <p class="campo-error">Introduce el nombre del titular tal y como aparece en la tarjeta.</p>
+          <p class="campo-error">Introduce solo letras en el nombre del titular, tal y como aparece en la tarjeta.</p>
         }
 
         <ion-item lines="inset">

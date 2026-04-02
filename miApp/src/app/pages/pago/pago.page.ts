@@ -192,6 +192,12 @@ export class PagoPage implements OnInit {
   }
 
   formularioTarjetaValido(): boolean {
+    const tarjetaActual = this.obtenerTarjetaActualFormulario();
+
+    if (this.profileService.tarjetaPrincipalGuardadaEsUsable(tarjetaActual)) {
+      return true;
+    }
+
     return (
       this.nombreTitularValido() &&
       this.numeroTarjetaValido() &&
@@ -221,6 +227,10 @@ export class PagoPage implements OnInit {
       return false;
     }
 
+    if (this.profileService.tarjetaPrincipalGuardadaEsUsable(this.obtenerTarjetaActualFormulario())) {
+      return false;
+    }
+
     if (campo === 'titular') {
       return (this.intentoConfirmarPedido || this.nombreTitular.trim() !== '') && !this.nombreTitularValido();
     }
@@ -240,6 +250,13 @@ export class PagoPage implements OnInit {
     const valor = String(event.detail.value ?? '');
     const digitos = valor.replace(/\D/g, '').slice(0, 16);
     this.numeroTarjeta = digitos.replace(/(.{4})/g, '$1 ').trim();
+  }
+
+  actualizarNombreTitular(event: CustomEvent): void {
+    this.nombreTitular = String(event.detail.value ?? '')
+      .replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s.'-]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/^\s+/, '');
   }
 
   actualizarFechaCaducidad(event: CustomEvent): void {
@@ -373,7 +390,13 @@ export class PagoPage implements OnInit {
   }
 
   private async guardarTarjetaEnPerfil(): Promise<void> {
+    const tarjetaActual = this.obtenerTarjetaActualFormulario();
+
     if (!this.formularioTarjetaValido()) {
+      return;
+    }
+
+    if (this.profileService.tarjetaPrincipalGuardadaEsUsable(tarjetaActual)) {
       return;
     }
 
@@ -382,12 +405,21 @@ export class PagoPage implements OnInit {
     await this.profileService.guardarPerfilPersistido({
       ...perfilActual,
       tarjetaPrincipal: {
-        nombreTitular: this.nombreTitular.trim(),
-        numeroTarjeta: this.numeroTarjeta.trim(),
-        fechaCaducidad: this.fechaCaducidad.trim(),
-        cvv: this.cvv.trim()
+        nombreTitular: tarjetaActual.nombreTitular,
+        numeroTarjeta: tarjetaActual.numeroTarjeta,
+        fechaCaducidad: tarjetaActual.fechaCaducidad,
+        cvv: tarjetaActual.cvv
       }
     });
+  }
+
+  private obtenerTarjetaActualFormulario(): TarjetaPrincipal {
+    return {
+      nombreTitular: this.nombreTitular.trim(),
+      numeroTarjeta: this.numeroTarjeta.trim(),
+      fechaCaducidad: this.fechaCaducidad.trim(),
+      cvv: this.cvv.trim()
+    };
   }
 
   private async guardarPedidoConfirmado(): Promise<void> {

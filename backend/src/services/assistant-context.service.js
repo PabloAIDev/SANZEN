@@ -25,6 +25,68 @@ function normalizarArrayTextos(valor) {
   return valor.filter((item) => typeof item === 'string').map((item) => item.trim()).filter(Boolean);
 }
 
+function textoValido(valor, minimo) {
+  return normalizarTexto(valor).length >= minimo;
+}
+
+function codigoPostalValido(valor) {
+  return /^\d{5}$/.test(normalizarTexto(valor));
+}
+
+function telefonoValido(valor) {
+  return /^\d{9}$/.test(normalizarTexto(valor).replace(/\s/g, ''));
+}
+
+function numeroTarjetaValido(valor) {
+  const digitos = normalizarTexto(valor).replace(/\D/g, '');
+  return /^\d{16}$/.test(digitos);
+}
+
+function fechaCaducidadValida(valor) {
+  const coincidencia = normalizarTexto(valor).match(/^(\d{2})\/(\d{2}|\d{4})$/);
+
+  if (!coincidencia) {
+    return false;
+  }
+
+  const mes = Number(coincidencia[1]);
+  const anioTexto = coincidencia[2];
+
+  if (mes < 1 || mes > 12) {
+    return false;
+  }
+
+  const anio = anioTexto.length === 2 ? 2000 + Number(anioTexto) : Number(anioTexto);
+  const fechaExpiracion = new Date(anio, mes, 0, 23, 59, 59, 999);
+  return fechaExpiracion >= new Date();
+}
+
+function cvvValido(valor) {
+  return /^\d{3}$/.test(normalizarTexto(valor));
+}
+
+function direccionCompleta(direccion) {
+  return Boolean(
+    direccion &&
+    textoValido(direccion.nombre, 2) &&
+    textoValido(direccion.calle_numero, 5) &&
+    textoValido(direccion.ciudad, 2) &&
+    codigoPostalValido(direccion.codigo_postal) &&
+    textoValido(direccion.provincia, 2) &&
+    telefonoValido(direccion.telefono)
+  );
+}
+
+function tarjetaCompleta(tarjeta) {
+  return Boolean(
+    tarjeta &&
+    textoValido(tarjeta.nombre_titular, 3) &&
+    numeroTarjetaValido(tarjeta.numero_enmascarado) &&
+    fechaCaducidadValida(tarjeta.fecha_caducidad) &&
+    cvvValido(tarjeta.cvv)
+  );
+}
+
 function parseJsonArray(value) {
   if (Array.isArray(value)) {
     return value.filter(Boolean);
@@ -188,7 +250,7 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
 
     const [[direccion]] = await pool.query(
       `
-      SELECT id
+      SELECT nombre, calle_numero, ciudad, codigo_postal, provincia, telefono
       FROM direcciones
       WHERE usuario_id = ?
       ORDER BY es_principal DESC, id ASC
@@ -199,7 +261,7 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
 
     const [[tarjeta]] = await pool.query(
       `
-      SELECT id
+      SELECT nombre_titular, numero_enmascarado, fecha_caducidad, cvv
       FROM tarjetas
       WHERE usuario_id = ?
       ORDER BY es_principal DESC, id ASC
@@ -213,7 +275,7 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
       allergies: alergenosRows.map((row) => normalizarTexto(row.nombre)),
       objective: perfil?.objetivo_nutricional ?? null,
       compositionPreferences: preferenciasRows.map((row) => normalizarTexto(row.nombre)),
-      profileCompleteForPayment: Boolean(direccion && tarjeta)
+      profileCompleteForPayment: direccionCompleta(direccion) && tarjetaCompleta(tarjeta)
     };
 
     const [[subscriptionRow]] = await pool.query(

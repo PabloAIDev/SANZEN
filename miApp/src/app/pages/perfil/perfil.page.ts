@@ -154,14 +154,14 @@ export class PerfilPage implements OnInit {
     this.aplicarPrefillPrimerPedidoSiCorresponde();
   }
 
-  guardarPerfil(): void {
+  async guardarPerfil(): Promise<void> {
     this.intentoGuardar = true;
 
     if (!this.formularioPerfilValido()) {
       return;
     }
 
-    this.profileService.guardarPerfil(this.perfil);
+    await this.profileService.guardarPerfilPersistido(this.perfil);
 
     if (
       this.usuarioActual &&
@@ -256,6 +256,25 @@ export class PerfilPage implements OnInit {
       String(event.detail.value ?? '').replace(/\D/g, '').slice(0, 5);
   }
 
+  actualizarNombre(event: CustomEvent): void {
+    this.perfil.nombre = this.sanitizarTextoSoloLetras(event.detail.value);
+  }
+
+  actualizarCalleNumero(event: CustomEvent): void {
+    this.perfil.direccionPrincipal = this.obtenerDireccionEditable();
+    this.perfil.direccionPrincipal.calleNumero = this.sanitizarCalleNumero(event.detail.value);
+  }
+
+  actualizarCiudad(event: CustomEvent): void {
+    this.perfil.direccionPrincipal = this.obtenerDireccionEditable();
+    this.perfil.direccionPrincipal.ciudad = this.sanitizarTextoSoloLetras(event.detail.value);
+  }
+
+  actualizarProvincia(event: CustomEvent): void {
+    this.perfil.direccionPrincipal = this.obtenerDireccionEditable();
+    this.perfil.direccionPrincipal.provincia = this.sanitizarTextoSoloLetras(event.detail.value);
+  }
+
   actualizarTelefono(event: CustomEvent): void {
     this.perfil.direccionPrincipal = this.obtenerDireccionEditable();
     this.perfil.direccionPrincipal.telefono =
@@ -285,6 +304,11 @@ export class PerfilPage implements OnInit {
     this.perfil.tarjetaPrincipal = this.obtenerTarjetaEditable();
     this.perfil.tarjetaPrincipal.cvv =
       String(event.detail.value ?? '').replace(/\D/g, '').slice(0, 3);
+  }
+
+  actualizarNombreTitular(event: CustomEvent): void {
+    this.perfil.tarjetaPrincipal = this.obtenerTarjetaEditable();
+    this.perfil.tarjetaPrincipal.nombreTitular = this.sanitizarTextoSoloLetras(event.detail.value);
   }
 
   private obtenerDireccionEditable(): DireccionPrincipal {
@@ -436,7 +460,7 @@ export class PerfilPage implements OnInit {
   }
 
   private nombreValido(): boolean {
-    return this.profileService.textoConMinimoValido(this.perfil.nombre, 2);
+    return this.profileService.textoSoloLetrasEsValido(this.perfil.nombre, 2);
   }
 
   private emailValido(): boolean {
@@ -452,11 +476,11 @@ export class PerfilPage implements OnInit {
   }
 
   private calleNumeroValido(): boolean {
-    return this.profileService.textoConMinimoValido(this.perfil.direccionPrincipal?.calleNumero ?? '', 5);
+    return this.profileService.calleNumeroEsValido(this.perfil.direccionPrincipal?.calleNumero ?? '');
   }
 
   private ciudadValida(): boolean {
-    return this.profileService.textoConMinimoValido(this.perfil.direccionPrincipal?.ciudad ?? '', 2);
+    return this.profileService.textoSoloLetrasEsValido(this.perfil.direccionPrincipal?.ciudad ?? '', 2);
   }
 
   private codigoPostalValido(): boolean {
@@ -464,7 +488,7 @@ export class PerfilPage implements OnInit {
   }
 
   private provinciaValida(): boolean {
-    return this.profileService.textoConMinimoValido(this.perfil.direccionPrincipal?.provincia ?? '', 2);
+    return this.profileService.textoSoloLetrasEsValido(this.perfil.direccionPrincipal?.provincia ?? '', 2);
   }
 
   private telefonoValido(): boolean {
@@ -484,7 +508,8 @@ export class PerfilPage implements OnInit {
   }
 
   private numeroTarjetaValido(): boolean {
-    return this.profileService.numeroTarjetaEsValido(this.perfil.tarjetaPrincipal?.numeroTarjeta ?? '');
+    return this.profileService.tarjetaPrincipalGuardadaEsUsable(this.perfil.tarjetaPrincipal) ||
+      this.profileService.numeroTarjetaEsValido(this.perfil.tarjetaPrincipal?.numeroTarjeta ?? '');
   }
 
   private fechaCaducidadValida(): boolean {
@@ -492,6 +517,21 @@ export class PerfilPage implements OnInit {
   }
 
   private cvvValido(): boolean {
-    return this.profileService.cvvEsValido(this.perfil.tarjetaPrincipal?.cvv ?? '');
+    return this.profileService.tarjetaPrincipalGuardadaEsUsable(this.perfil.tarjetaPrincipal) ||
+      this.profileService.cvvEsValido(this.perfil.tarjetaPrincipal?.cvv ?? '');
+  }
+
+  private sanitizarTextoSoloLetras(valor: unknown): string {
+    return String(valor ?? '')
+      .replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s.'-]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/^\s+/, '');
+  }
+
+  private sanitizarCalleNumero(valor: unknown): string {
+    return String(valor ?? '')
+      .replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9\s,./ºª#-]/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/^\s+/, '');
   }
 }

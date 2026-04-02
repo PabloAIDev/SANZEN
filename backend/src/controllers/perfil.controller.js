@@ -3,9 +3,15 @@ const { obtenerUserIdSeguro } = require('../middleware/auth');
 const { hashPassword } = require('../utils/passwords');
 
 const PASSWORD_SENTINEL = '********';
+const SOLO_LETRAS_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s.'-]+$/;
+const CALLE_NUMERO_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9\s,./ºª#-]+$/;
 
 function textoValido(valor, minimo) {
   return typeof valor === 'string' && valor.trim().length >= minimo;
+}
+
+function textoSoloLetrasValido(valor, minimo) {
+  return textoValido(valor, minimo) && SOLO_LETRAS_REGEX.test(String(valor ?? '').trim());
 }
 
 function emailValido(valor) {
@@ -25,7 +31,7 @@ function telefonoValido(valor) {
 }
 
 function nombreTitularValido(valor) {
-  return textoValido(valor, 3);
+  return textoSoloLetrasValido(valor, 3);
 }
 
 function numeroTarjetaValido(valor) {
@@ -59,11 +65,15 @@ function cvvValido(valor) {
 function direccionValida(direccion) {
   return direccion &&
     textoValido(direccion.nombre, 2) &&
-    textoValido(direccion.calleNumero, 5) &&
-    textoValido(direccion.ciudad, 2) &&
+    calleNumeroValido(direccion.calleNumero) &&
+    textoSoloLetrasValido(direccion.ciudad, 2) &&
     codigoPostalValido(direccion.codigoPostal) &&
-    textoValido(direccion.provincia, 2) &&
+    textoSoloLetrasValido(direccion.provincia, 2) &&
     telefonoValido(direccion.telefono);
+}
+
+function calleNumeroValido(valor) {
+  return textoValido(valor, 5) && CALLE_NUMERO_REGEX.test(String(valor ?? '').trim());
 }
 
 function tarjetaTieneDatos(tarjeta) {
@@ -84,8 +94,8 @@ function tarjetaValida(tarjeta) {
 }
 
 function validarPerfil(perfil, opciones = {}) {
-  if (!textoValido(perfil.nombre, 2)) {
-    return 'El nombre debe tener al menos 2 caracteres.';
+  if (!textoSoloLetrasValido(perfil.nombre, 2)) {
+    return 'El nombre debe tener al menos 2 letras y no puede incluir números.';
   }
 
   if (!emailValido(perfil.email)) {

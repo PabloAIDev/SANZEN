@@ -44,7 +44,18 @@ describe('PerfilPage', () => {
               tarjetaPrincipal: null
             }),
             guardarPerfil: jasmine.createSpy('guardarPerfil'),
+            guardarPerfilPersistido: jasmine.createSpy('guardarPerfilPersistido').and.resolveTo({
+              nombre: '',
+              email: '',
+              password: '',
+              alergenos: [],
+              objetivoNutricional: null,
+              preferenciasComposicion: [],
+              direccionPrincipal: null,
+              tarjetaPrincipal: null
+            }),
             tarjetaPrincipalTieneDatos: jasmine.createSpy('tarjetaPrincipalTieneDatos').and.returnValue(false),
+            tarjetaPrincipalGuardadaEsUsable: jasmine.createSpy('tarjetaPrincipalGuardadaEsUsable').and.returnValue(false),
             restablecerPreferenciasNutricionales: jasmine.createSpy('restablecerPreferenciasNutricionales').and.returnValue({
               nombre: '',
               email: '',

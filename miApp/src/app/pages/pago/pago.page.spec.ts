@@ -73,12 +73,15 @@ describe('PagoPage', () => {
               }
             }),
             tarjetaPrincipalTieneDatos: jasmine.createSpy('tarjetaPrincipalTieneDatos').and.returnValue(true),
+            tarjetaPrincipalGuardadaEsUsable: jasmine.createSpy('tarjetaPrincipalGuardadaEsUsable').and.returnValue(false),
+            tarjetaPrincipalEditableEsCompleta: jasmine.createSpy('tarjetaPrincipalEditableEsCompleta').and.returnValue(true),
             tienePerfilCompletoParaPago: jasmine.createSpy('tienePerfilCompletoParaPago').and.returnValue(true),
             nombreTitularTarjetaEsValido: jasmine.createSpy('nombreTitularTarjetaEsValido').and.returnValue(true),
             numeroTarjetaEsValido: jasmine.createSpy('numeroTarjetaEsValido').and.returnValue(true),
             fechaCaducidadTarjetaEsValida: jasmine.createSpy('fechaCaducidadTarjetaEsValida').and.returnValue(true),
             cvvEsValido: jasmine.createSpy('cvvEsValido').and.returnValue(true),
-            guardarPerfil: jasmine.createSpy('guardarPerfil')
+            guardarPerfil: jasmine.createSpy('guardarPerfil'),
+            guardarPerfilPersistido: jasmine.createSpy('guardarPerfilPersistido').and.resolveTo()
           }
         },
         {

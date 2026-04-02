@@ -19,6 +19,8 @@ export class ProfileService {
   private perfilCache: UserProfile = this.obtenerPerfilVacio();
   private cacheUsuarioId: number | null = null;
   private readonly passwordSentinel = '********';
+  private readonly soloLetrasRegex = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s.'-]+$/;
+  private readonly calleNumeroRegex = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9\s,./ºª#-]+$/;
 
   constructor(
     private http: HttpClient,
@@ -91,6 +93,10 @@ export class ProfileService {
     return this.textoValido(valor, minimo);
   }
 
+  textoSoloLetrasEsValido(valor: string, minimo: number): boolean {
+    return this.textoSoloLetrasValido(valor, minimo);
+  }
+
   emailEsValido(valor: string): boolean {
     return this.emailValido(valor);
   }
@@ -112,7 +118,11 @@ export class ProfileService {
   }
 
   nombreTitularTarjetaEsValido(valor: string): boolean {
-    return this.textoValido(valor, 3);
+    return this.textoSoloLetrasValido(valor, 3);
+  }
+
+  calleNumeroEsValido(valor: string): boolean {
+    return this.calleNumeroValido(valor);
   }
 
   numeroTarjetaEsValido(valor: string): boolean {
@@ -144,7 +154,15 @@ export class ProfileService {
   }
 
   tarjetaPrincipalEsCompleta(tarjeta: TarjetaPrincipal | null): boolean {
+    return this.tieneTarjetaCompleta(tarjeta) || this.tieneTarjetaGuardadaUsable(tarjeta);
+  }
+
+  tarjetaPrincipalEditableEsCompleta(tarjeta: TarjetaPrincipal | null): boolean {
     return this.tieneTarjetaCompleta(tarjeta);
+  }
+
+  tarjetaPrincipalGuardadaEsUsable(tarjeta: TarjetaPrincipal | null): boolean {
+    return this.tieneTarjetaGuardadaUsable(tarjeta);
   }
 
   tarjetaPrincipalTieneDatos(tarjeta: TarjetaPrincipal | null): boolean {
@@ -372,6 +390,11 @@ export class ProfileService {
     return valor.trim().length >= minimo;
   }
 
+  private textoSoloLetrasValido(valor: string, minimo: number): boolean {
+    const texto = valor.trim();
+    return texto.length >= minimo && this.soloLetrasRegex.test(texto);
+  }
+
   private emailValido(valor: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor.trim());
   }
@@ -388,6 +411,11 @@ export class ProfileService {
     return /^\d{9}$/.test(valor.replace(/\s/g, ''));
   }
 
+  private calleNumeroValido(valor: string): boolean {
+    const texto = valor.trim();
+    return texto.length >= 5 && this.calleNumeroRegex.test(texto);
+  }
+
   private tieneTarjetaCompleta(tarjeta: TarjetaPrincipal | null): boolean {
     if (!tarjeta) {
       return false;
@@ -399,6 +427,22 @@ export class ProfileService {
       this.fechaCaducidadTarjetaEsValida(tarjeta.fechaCaducidad) &&
       this.cvvEsValido(tarjeta.cvv)
     );
+  }
+
+  private tieneTarjetaGuardadaUsable(tarjeta: TarjetaPrincipal | null): boolean {
+    if (!tarjeta) {
+      return false;
+    }
+
+    return (
+      this.nombreTitularTarjetaEsValido(tarjeta.nombreTitular) &&
+      this.numeroTarjetaEnmascaradoEsValido(tarjeta.numeroTarjeta) &&
+      this.fechaCaducidadTarjetaEsValida(tarjeta.fechaCaducidad)
+    );
+  }
+
+  private numeroTarjetaEnmascaradoEsValido(valor: string): boolean {
+    return /^\*{4}\s\*{4}\s\*{4}\s\d{4}$/.test(valor.trim());
   }
 
   private tieneDatosTarjeta(tarjeta: TarjetaPrincipal | null): boolean {

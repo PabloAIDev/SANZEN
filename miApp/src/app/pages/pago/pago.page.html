@@ -130,10 +130,10 @@
         <div class="tarjeta-formulario">
           <ion-item>
             <ion-label position="stacked" class="tarjeta-label">Nombre del titular</ion-label>
-            <ion-input [(ngModel)]="nombreTitular"></ion-input>
+            <ion-input [(ngModel)]="nombreTitular" (ionInput)="actualizarNombreTitular($event)"></ion-input>
           </ion-item>
           @if (mostrarErrorTarjeta('titular')) {
-            <p class="campo-error">Introduce el nombre del titular tal y como aparece en la tarjeta.</p>
+            <p class="campo-error">Introduce solo letras en el nombre del titular, tal y como aparece en la tarjeta.</p>
           }
 
           <ion-item>
