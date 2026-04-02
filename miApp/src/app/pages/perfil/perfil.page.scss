@@ -1,0 +1,142 @@
+:host {
+  --perfil-texto: #1f1a17;
+  --perfil-texto-suave: #6a6058;
+  --perfil-acento: #cf6b31;
+  --perfil-acento-oscuro: #b3551f;
+  --perfil-borde: rgba(31, 26, 23, 0.08);
+}
+
+ion-toolbar {
+  --background: rgba(251, 246, 239, 0.92);
+  --color: var(--perfil-texto);
+}
+
+.perfil-content {
+  --background:
+    radial-gradient(circle at top left, rgba(226, 158, 90, 0.18), transparent 30%),
+    linear-gradient(180deg, #fbf6ef 0%, #f5eee5 100%);
+  color: var(--perfil-texto);
+}
+
+.perfil-shell {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 20px 40px;
+}
+
+.hero-section {
+  margin-bottom: 20px;
+}
+
+.hero-section h1,
+.section-title h2 {
+  margin: 0;
+}
+
+.hero-section h1 {
+  font-size: clamp(2rem, 7vw, 3.4rem);
+  line-height: 1.05;
+}
+
+.hero-section p {
+  margin: 12px 0 0;
+  color: var(--perfil-texto-suave);
+  line-height: 1.6;
+}
+
+.perfil-card {
+  margin: 0 0 16px;
+  border: 1px solid var(--perfil-borde);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 16px 36px rgba(52, 36, 28, 0.08);
+}
+
+.perfil-card ion-card-content {
+  padding: 22px;
+}
+
+.section-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+ion-item {
+  --background: transparent;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+}
+
+.campo-error {
+  margin: -2px 0 10px;
+  color: var(--ion-color-danger);
+  font-size: 14px;
+}
+
+.alergenos-list {
+  display: grid;
+  gap: 10px;
+}
+
+.alergeno-item {
+  --border-radius: 18px;
+  border: 1px solid rgba(31, 26, 23, 0.06);
+  border-radius: 18px;
+  padding: 10px 14px;
+}
+
+.alergeno-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alergeno-icono {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.acciones {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.guardar-button {
+  --background: linear-gradient(135deg, var(--perfil-acento) 0%, var(--perfil-acento-oscuro) 100%);
+  --background-hover: var(--perfil-acento-oscuro);
+  --background-activated: var(--perfil-acento-oscuro);
+  --border-radius: 18px;
+  --box-shadow: 0 14px 26px rgba(207, 107, 49, 0.22);
+  min-height: 54px;
+  font-weight: 700;
+}
+
+.reset-button {
+  --color: var(--perfil-acento-oscuro);
+  --border-color: rgba(207, 107, 49, 0.36);
+  --border-radius: 18px;
+  min-height: 54px;
+  font-weight: 700;
+}
+
+.pedidos-button {
+  --color: #fff8f2;
+  --border-color: rgba(23, 87, 126, 0.24);
+  --background: linear-gradient(135deg, #0f8bb8 0%, #22b573 100%);
+  --background-hover: #167ca6;
+  --background-activated: #167ca6;
+  --box-shadow: 0 14px 28px rgba(15, 139, 184, 0.22);
+  --border-radius: 18px;
+  min-height: 54px;
+  font-weight: 700;
+}
+
+@media (min-width: 768px) {
+  .perfil-shell {
+    padding: 32px 28px 56px;
+  }
+}

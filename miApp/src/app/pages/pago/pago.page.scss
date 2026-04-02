@@ -1,0 +1,85 @@
+ion-card {
+  margin-bottom: 16px;
+}
+
+ion-card-title {
+  color: #000000;
+}
+
+.bloque-intro {
+  margin: 0 0 16px;
+  color: var(--ion-color-medium);
+  line-height: 1.4;
+}
+
+.subseccion {
+  margin-top: 20px;
+}
+
+.subseccion h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.alergeno-opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.alergeno-icono {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.total-bloque {
+  margin-top: 16px;
+  text-align: right;
+  font-size: 18px;
+}
+
+.detalle-seleccion {
+  margin-top: 12px;
+  color: var(--ion-color-medium);
+}
+
+.tarjeta-formulario {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tarjeta-formulario ion-input {
+  --label-color: #000000;
+  --highlight-color-focused: #000000;
+  color: #000000;
+}
+
+.tarjeta-formulario ion-item {
+  --color: #000000;
+}
+
+.tarjeta-label {
+  color: #000000;
+  font-weight: 600;
+}
+
+.campo-error {
+  margin: -2px 0 4px;
+  padding: 0 16px;
+  color: var(--ion-color-danger);
+  font-size: 14px;
+}
+
+.footer-pago {
+  padding: 12px 16px 16px;
+}
+
+.footer-total {
+  margin-bottom: 8px;
+  font-size: 18px;
+  font-weight: 600;
+}

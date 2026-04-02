@@ -1,0 +1,32 @@
+# Root project
+.idea/
+.vscode/
+*.log
+Thumbs.db
+.DS_Store
+
+# Backup of previous nested repo metadata
+_backup_miApp_git/
+
+# Backend
+backend/node_modules/
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Frontend
+miApp/node_modules/
+miApp/.angular/
+miApp/www/
+miApp/coverage/
+miApp/.ionic/
+miApp/dist/
+miApp/out-tsc/
+miApp/.nx/
+miApp/.sass-cache/
+miApp/.history/
+
+# Generated or temporary
+coverage/
+tmp/
+*.tmp

@@ -1,0 +1,66 @@
+<ion-header class="page-header toolbar-logo-grande">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/inicio"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="como-funciona-content">
+  <section class="hero-section">
+    <div class="hero-badge">
+      <ion-icon name="leaf-outline"></ion-icon>
+      <span>Primer pedido, usuarios registrados y renovación</span>
+    </div>
+
+    <h1>Así funciona SANZEN</h1>
+    <p>
+      SANZEN combina primer pedido, perfil nutricional, pedido individual, suscripción semanal,
+      pedidos posteriores y seguimiento en un único flujo.
+    </p>
+  </section>
+
+  <section class="steps-section">
+    <div class="section-heading">
+      <span class="eyebrow">7 pasos</span>
+      <h2>Así funciona tu pedido de principio a fin</h2>
+    </div>
+
+    <ion-card class="step-card" *ngFor="let paso of pasos; let i = index">
+      <ion-card-content>
+        <div class="step-top">
+          <div class="step-icon">
+            <ion-icon [name]="paso.icono"></ion-icon>
+          </div>
+          <span class="step-number">{{ i + 1 < 10 ? `0${i + 1}` : i + 1 }}</span>
+        </div>
+
+        <h3>{{ paso.titulo }}</h3>
+        <p>{{ paso.texto }}</p>
+      </ion-card-content>
+    </ion-card>
+  </section>
+
+  <section class="visual-section">
+    <div
+      class="visual-block"
+      *ngFor="let bloque of bloquesVisuales; let i = index"
+      [class.reverse]="i % 2 !== 0"
+    >
+      <div class="visual-image">
+        <img [src]="bloque.imagen" [alt]="bloque.titulo" />
+      </div>
+
+      <div class="visual-copy">
+        <div class="copy-icon">
+          <ion-icon [name]="i === 2 ? 'checkmark-circle-outline' : 'restaurant-outline'"></ion-icon>
+        </div>
+        <h3>{{ bloque.titulo }}</h3>
+        <p>{{ bloque.texto }}</p>
+      </div>
+    </div>
+  </section>
+</ion-content>

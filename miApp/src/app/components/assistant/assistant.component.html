@@ -1,0 +1,85 @@
+<ion-button
+  class="assistant-trigger"
+  [class.assistant-trigger-menu]="pantallaActual === 'menu'"
+  shape="round"
+  (click)="abrirAsistente()"
+  aria-label="Abrir asistente IA">
+  <img class="assistant-trigger-image" src="assets/img/assistant-icon.png" alt="" />
+</ion-button>
+
+<ion-modal [isOpen]="abierto" (didDismiss)="cerrarAsistente()">
+  <ng-template>
+    <ion-header>
+      <ion-toolbar>
+        <ion-title class="assistant-modal-title">Asistente SANZEN</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="limpiarConversacion()" aria-label="Reiniciar conversación">
+            <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
+          </ion-button>
+          <ion-button (click)="cerrarAsistente()" aria-label="Cerrar asistente">
+            <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="assistant-content">
+      <div class="assistant-screen-tag">Pantalla actual: {{ pantallaActual }}</div>
+
+      <div class="assistant-suggestions">
+        @for (sugerencia of obtenerSugerenciasRapidas(); track sugerencia) {
+          <ion-chip (click)="enviarSugerencia(sugerencia)">
+            <ion-label>{{ sugerencia }}</ion-label>
+          </ion-chip>
+        }
+      </div>
+
+      <div class="assistant-messages">
+        @for (message of mensajes; track message.id) {
+          <div
+            class="assistant-message"
+            [class.assistant-message-user]="message.role === 'user'"
+            [class.assistant-message-bot]="message.role === 'assistant'">
+            <p>{{ message.text }}</p>
+
+            @if (message.actions?.length) {
+              <div class="assistant-actions">
+                @for (action of message.actions; track action.target + action.label) {
+                  <ion-button size="small" fill="outline" (click)="ejecutarAccion(action)">
+                    {{ action.label }}
+                  </ion-button>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        @if (enviando) {
+          <div class="assistant-message assistant-message-bot assistant-message-loading">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p>Pensando...</p>
+          </div>
+        }
+      </div>
+    </ion-content>
+
+    <ion-footer>
+      <div class="assistant-input-row">
+        <ion-textarea
+          [(ngModel)]="mensajeActual"
+          autoGrow="true"
+          rows="1"
+          maxlength="600"
+          placeholder="Escribe tu pregunta">
+        </ion-textarea>
+
+        <ion-button
+          class="assistant-send-button"
+          [disabled]="enviando || mensajeActual.trim() === ''"
+          (click)="enviarMensaje()">
+          <ion-icon slot="icon-only" name="send-outline"></ion-icon>
+        </ion-button>
+      </div>
+    </ion-footer>
+  </ng-template>
+</ion-modal>

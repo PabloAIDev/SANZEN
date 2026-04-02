@@ -1,0 +1,447 @@
+﻿<div class="menu-backdrop" [class.abierto]="menuLateralAbierto" (click)="cerrarMenuLateral()"></div>
+
+<aside class="menu-lateral" [class.abierto]="menuLateralAbierto">
+  <div class="menu-lateral-header">
+    <img class="side-menu-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+  </div>
+
+  <ion-list lines="none">
+    <ion-item button (click)="irAInicioDesdeMenu()">
+      <ion-icon slot="start" name="home-outline"></ion-icon>
+      <ion-label>Inicio</ion-label>
+    </ion-item>
+
+    <ion-item button (click)="irAPerfil()">
+      <ion-icon slot="start" name="person-outline"></ion-icon>
+      <ion-label>Ver perfil</ion-label>
+    </ion-item>
+
+    <ion-item button (click)="irASuscripcionDesdeMenu()">
+      <ion-icon slot="start" name="repeat-outline"></ion-icon>
+      <ion-label>Gestionar suscripción semanal</ion-label>
+    </ion-item>
+
+    <ion-item button (click)="irAPedidosDesdeMenu()">
+      <ion-icon slot="start" name="receipt-outline"></ion-icon>
+      <ion-label>Ver mis pedidos</ion-label>
+    </ion-item>
+
+    <ion-item button (click)="irAComoFunciona()">
+      <ion-icon slot="start" name="information-circle-outline"></ion-icon>
+      <ion-label>Cómo funciona</ion-label>
+    </ion-item>
+
+    <ion-item button (click)="cambiarUsuarioDesdeMenu()">
+      <ion-icon slot="start" name="swap-horizontal-outline"></ion-icon>
+      <ion-label>Cambiar usuario</ion-label>
+    </ion-item>
+  </ion-list>
+</aside>
+
+<ion-header class="toolbar-logo-grande">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button aria-label="Abrir menu" (click)="abrirMenuLateral()">
+        <ion-icon slot="icon-only" name="menu-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+
+    <ion-title>
+      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+    </ion-title>
+
+    <ion-buttons slot="end">
+      <ion-button
+        class="boton-header-carrito"
+        [disabled]="!puedeContinuarPedido()"
+        (click)="irAResumen()">
+        <ion-icon slot="icon-only" name="cart-outline"></ion-icon>
+        @if (obtenerCantidadTotalItems() > 0) {
+          <ion-badge color="danger">{{ obtenerCantidadTotalItems() }}</ion-badge>
+        }
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content id="menu-main-content" class="ion-padding menu-content">
+    @if (mensajeSuscripcion !== '') {
+      <div class="suscripcion-banner">
+        {{ mensajeSuscripcion }}
+      </div>
+      @if (suscripcionActiva) {
+        <div class="suscripcion-banner-acciones">
+          <ion-button fill="outline" size="small" (click)="irASuscripcionDesdeMenu()">
+            Gestionar suscripción
+          </ion-button>
+        </div>
+      }
+    }
+
+    @if (!suscripcionActiva) {
+      <div class="pedido-individual-banner">
+        PEDIDO INDIVIDUAL (MÍNIMO 20€)
+      </div>
+    }
+
+    <ion-searchbar
+      [(ngModel)]="terminoBusqueda"
+      (ionInput)="filtrarPlatos()"
+      placeholder="Buscar plato por nombre">
+    </ion-searchbar>
+
+    <div class="filtros-container">
+      <ion-item>
+        <ion-label>Categoría</ion-label>
+        <ion-select
+          [(ngModel)]="categoriaSeleccionada"
+          (ionChange)="filtrarPlatos()"
+          interface="popover">
+          <ion-select-option value="Todas">Todas</ion-select-option>
+          <ion-select-option value="Entrante">Entrante</ion-select-option>
+          <ion-select-option value="Principal">Principal</ion-select-option>
+          @if (!suscripcionActiva) {
+            <ion-select-option value="Postre">Postre</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+    </div>
+
+    @if (obtenerFiltrosActivos().length > 0) {
+      <div class="filtros-activos">
+        @for (filtro of obtenerFiltrosActivos(); track filtro.tipo + filtro.valor) {
+          <ion-chip class="filtro-activo-chip" (click)="quitarFiltroActivo(filtro.tipo, filtro.valor)">
+            <ion-label>{{ filtro.etiqueta }}</ion-label>
+            <ion-icon name="close-circle-outline"></ion-icon>
+          </ion-chip>
+        }
+      </div>
+    }
+
+    @if (tieneRecomendaciones()) {
+      <section class="recomendacion-bloque">
+        <div class="recomendacion-encabezado">
+          <span class="recomendacion-kicker">Recomendado para ti</span>
+          <p>{{ mensajeRecomendacion }}</p>
+        </div>
+
+        <ion-grid class="recomendacion-grid">
+          <ion-row>
+            @for (plato of platosRecomendados; track plato.id) {
+              <ion-col size="12" sizeMd="4">
+                <ion-card class="recomendacion-card" button (click)="verDetalle(plato.id)">
+                  <div class="imagen-plato-wrapper">
+                    <img [src]="plato.image" [alt]="plato.name" class="recomendacion-imagen" />
+
+                    <div class="carrito-overlay" (click)="$event.stopPropagation()">
+                      <ion-button
+                        fill="clear"
+                        class="carrito-control-boton"
+                        (click)="disminuirUnidad(plato.id, $event)">
+                        -
+                      </ion-button>
+
+                      <span class="carrito-cantidad">{{ obtenerCantidadDePlato(plato.id) }}</span>
+
+                      <ion-button
+                        fill="clear"
+                        class="carrito-control-boton"
+                        [disabled]="esPlatoBloqueadoPorSuscripcion(plato.id)"
+                        (click)="anadirUnidad(plato, $event)">
+                        +
+                      </ion-button>
+                    </div>
+                  </div>
+
+                  <ion-card-header>
+                    @if (ordenHealthyActivo && esTopHealthyFiltrado(plato.id)) {
+                      <ion-chip class="top-healthy-chip" color="warning">
+                        <ion-label>Top healthy</ion-label>
+                      </ion-chip>
+                    }
+                    <ion-card-title>{{ plato.name }}</ion-card-title>
+                    <ion-card-subtitle>
+                      {{ plato.calories }} kcal · {{ plato.price | currency:'EUR':'symbol' }}
+                    </ion-card-subtitle>
+                  </ion-card-header>
+
+                  <ion-card-content>
+                    <ion-chip color="success">
+                      <ion-label>HealthScore {{ plato.healthScore }}</ion-label>
+                    </ion-chip>
+
+                    <div class="alergenos-container">
+                      @for (alergeno of plato.allergens; track alergeno) {
+                        <img
+                          [src]="obtenerIconoAlergeno(alergeno)"
+                          [alt]="alergeno"
+                          [title]="alergeno"
+                          class="icono-alergeno"
+                        />
+                      }
+                    </div>
+                  </ion-card-content>
+                </ion-card>
+              </ion-col>
+            }
+          </ion-row>
+        </ion-grid>
+      </section>
+    }
+
+    @if (platosFiltrados.length === 0) {
+      <div class="sin-resultados">
+        No hay platos que coincidan con los filtros.
+      </div>
+    } @else if (obtenerPlatosParaListado().length === 0) {
+      @if (!tieneRecomendaciones()) {
+        <div class="sin-resultados">
+          No hay platos que coincidan con los filtros.
+        </div>
+      }
+    } @else {
+      <ion-grid>
+        <ion-row>
+          @for (plato of obtenerPlatosParaListado(); track plato.id) {
+            <ion-col size="6">
+              <ion-card button (click)="verDetalle(plato.id)">
+                <div class="imagen-plato-wrapper">
+                  <img [src]="plato.image" [alt]="plato.name" />
+
+                  <div class="carrito-overlay" (click)="$event.stopPropagation()">
+                    <ion-button
+                      fill="clear"
+                      class="carrito-control-boton"
+                      (click)="disminuirUnidad(plato.id, $event)">
+                      -
+                    </ion-button>
+
+                    <span class="carrito-cantidad">{{ obtenerCantidadDePlato(plato.id) }}</span>
+
+                    <ion-button
+                      fill="clear"
+                      class="carrito-control-boton"
+                      [disabled]="esPlatoBloqueadoPorSuscripcion(plato.id)"
+                      (click)="anadirUnidad(plato, $event)">
+                      +
+                    </ion-button>
+                  </div>
+                </div>
+
+                <ion-card-header>
+                  @if (ordenHealthyActivo && esTopHealthyFiltrado(plato.id)) {
+                    <ion-chip class="top-healthy-chip" color="warning">
+                      <ion-label>Top healthy</ion-label>
+                    </ion-chip>
+                  }
+                  <ion-card-title>{{ plato.name }}</ion-card-title>
+                  <ion-card-subtitle>
+                    {{ plato.calories }} kcal · {{ plato.price | currency:'EUR':'symbol' }}
+                  </ion-card-subtitle>
+                </ion-card-header>
+
+                <ion-card-content>
+                  <ion-chip color="success">
+                    <ion-label>HealthScore {{ plato.healthScore }}</ion-label>
+                  </ion-chip>
+
+                  <div class="alergenos-container">
+                    @for (alergeno of plato.allergens; track alergeno) {
+                      <img
+                        [src]="obtenerIconoAlergeno(alergeno)"
+                        [alt]="alergeno"
+                        [title]="alergeno"
+                        class="icono-alergeno"
+                      />
+                    }
+                  </div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+          }
+        </ion-row>
+      </ion-grid>
+    }
+
+    <div class="resumen-inferior">
+      <div class="resumen-inferior-cabecera">
+        <div class="resumen-inferior-info">
+          <div class="resumen-inferior-top">
+            <span>Platos seleccionados: {{ obtenerCantidadTotalItems() }}</span>
+          </div>
+
+          <div class="resumen-inferior-total">
+            <span>Total acumulado: {{ obtenerTotalSeleccionActual() | currency:'EUR':'symbol' }}</span>
+          </div>
+
+          @if (mostrarAhorroSuscripcion()) {
+            <div class="resumen-inferior-descuento">
+              <span>
+                Con suscripción ahorrarías {{ obtenerAhorroPotencialConSuscripcion() | currency:'EUR':'symbol' }}
+              </span>
+            </div>
+          }
+        </div>
+
+        <div class="resumen-inferior-accesos">
+          @if (!suscripcionActiva) {
+            <ion-button
+              fill="outline"
+              class="resumen-inferior-suscripcion"
+              (click)="irASuscripcionDesdeMenu()">
+              Suscripción semanal
+            </ion-button>
+          }
+
+          <div class="resumen-inferior-fab-row">
+            <ion-fab-button
+              size="small"
+              class="fab-orden-healthy"
+              [color]="ordenHealthyActivo ? 'warning' : 'success'"
+              (click)="toggleOrdenHealthy()">
+              <ion-icon name="fitness-outline"></ion-icon>
+            </ion-fab-button>
+
+            <ion-fab-button size="small" (click)="abrirModalFiltros()">
+              <ion-icon name="options-outline"></ion-icon>
+            </ion-fab-button>
+          </div>
+        </div>
+      </div>
+
+      <div class="resumen-inferior-acciones">
+        <ion-button
+          class="resumen-inferior-boton"
+          [disabled]="!puedeContinuarPedido()"
+          (click)="irAResumen()">
+          {{ obtenerTextoAccionPrincipal() }}
+        </ion-button>
+      </div>
+    </div>
+
+    <ion-modal [isOpen]="modalFiltrosAbierto" (didDismiss)="cerrarModalFiltros()">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>
+              <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+            </ion-title>
+          </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="ion-padding">
+          <div class="modal-filtros-encabezado">
+            <span class="recomendacion-kicker">Preferencias nutricionales</span>
+          </div>
+
+          <h2>Filtro de alérgenos</h2>
+          <ion-grid class="alergenos-filtro-grid">
+            <ion-row>
+              @for (alergeno of alergenosDisponibles; track alergeno) {
+                <ion-col size="6">
+                  <ion-item class="alergenos-filtro-item">
+                    <ion-label>Sin {{ alergeno }}</ion-label>
+                    <ion-checkbox
+                      slot="end"
+                      [checked]="alergenosSeleccionados.includes(alergeno)"
+                      (ionChange)="toggleAlergeno(alergeno, $event)">
+                    </ion-checkbox>
+                  </ion-item>
+                </ion-col>
+              }
+            </ion-row>
+          </ion-grid>
+
+          <h2>Objetivo nutricional</h2>
+          <ion-list>
+            <ion-radio-group [(ngModel)]="objetivoNutricionalSeleccionado">
+              <ion-item>
+                <ion-label>Perder peso</ion-label>
+                <ion-radio slot="end" value="perder-peso"></ion-radio>
+              </ion-item>
+
+              <ion-item>
+                <ion-label>Mejorar masa muscular</ion-label>
+                <ion-radio slot="end" value="masa-muscular"></ion-radio>
+              </ion-item>
+            </ion-radio-group>
+          </ion-list>
+
+          <h2>Preferencia de composición</h2>
+          <ion-list>
+            <ion-item>
+              <ion-label>Ricos en proteína</ion-label>
+              <ion-checkbox
+                slot="end"
+                [checked]="preferenciasComposicionSeleccionadas.includes('ricos-proteina')"
+                (ionChange)="togglePreferenciaComposicion('ricos-proteina', $event)">
+              </ion-checkbox>
+            </ion-item>
+
+            <ion-item>
+              <ion-label>Bajos en grasas</ion-label>
+              <ion-checkbox
+                slot="end"
+                [checked]="preferenciasComposicionSeleccionadas.includes('bajos-grasas')"
+                (ionChange)="togglePreferenciaComposicion('bajos-grasas', $event)">
+              </ion-checkbox>
+            </ion-item>
+
+            <ion-item>
+              <ion-label>Bajos en carbohidratos</ion-label>
+              <ion-checkbox
+                slot="end"
+                [checked]="preferenciasComposicionSeleccionadas.includes('bajos-carbohidratos')"
+                (ionChange)="togglePreferenciaComposicion('bajos-carbohidratos', $event)">
+              </ion-checkbox>
+            </ion-item>
+          </ion-list>
+
+          <div class="acciones-modal">
+            <ion-button fill="outline" (click)="limpiarFiltrosNutricionales()">
+              Limpiar
+            </ion-button>
+
+            <ion-button (click)="aplicarFiltrosNutricionales()">
+              Aplicar
+            </ion-button>
+          </div>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+
+    <ion-modal [isOpen]="modalSeleccionAbierto" (didDismiss)="cerrarModalSeleccion()">
+      <ng-template>
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>Platos seleccionados</ion-title>
+          </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="ion-padding">
+          <ion-list>
+            @for (item of obtenerItemsSeleccionados(); track item.plato.id) {
+              <ion-item>
+                <ion-label>
+                  <h3>{{ item.plato.name }}</h3>
+                  <p>{{ item.cantidad }} x {{ item.plato.price | currency:'EUR':'symbol' }}</p>
+                </ion-label>
+                <ion-note slot="end">{{ (item.plato.price * item.cantidad) | currency:'EUR':'symbol' }}</ion-note>
+              </ion-item>
+            }
+          </ion-list>
+
+          <div class="modal-seleccion-total">
+            <span>{{ obtenerCantidadTotalItems() }} platos seleccionados</span>
+            <strong>{{ obtenerTotalSeleccionActual() | currency:'EUR':'symbol' }}</strong>
+          </div>
+
+          <ion-button expand="block" (click)="irACarritoDesdeSeleccion()">
+            Ir al carrito
+          </ion-button>
+        </ion-content>
+      </ng-template>
+    </ion-modal>
+  </ion-content>
+
+

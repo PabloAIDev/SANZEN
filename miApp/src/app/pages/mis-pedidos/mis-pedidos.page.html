@@ -1,0 +1,100 @@
+﻿<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/perfil"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  @if (pedidos.length === 0) {
+    <ion-card class="estado-vacio-card">
+      <ion-card-content>
+        <h2>Aún no tienes pedidos</h2>
+        <p>Cuando confirmes tu primer pago, aquí aparecerá el historial completo.</p>
+      </ion-card-content>
+    </ion-card>
+  } @else {
+    @for (pedido of pedidos; track pedido.id) {
+      <ion-card class="pedido-card">
+        <ion-card-header>
+          <div class="pedido-top">
+            <div>
+              <ion-note>Número de pedido</ion-note>
+              <ion-card-title>{{ pedido.numeroPedido }}</ion-card-title>
+            </div>
+
+            <ion-chip [color]="obtenerColorEstado(pedido.estado)">
+              {{ obtenerEtiquetaEstado(pedido.estado) }}
+            </ion-chip>
+          </div>
+        </ion-card-header>
+
+        <ion-card-content>
+          <div class="pedido-meta-grid">
+            <div class="pedido-meta-item">
+              <span class="meta-label">Fecha</span>
+              <strong>{{ formatearFecha(pedido.fechaCreacion) }}</strong>
+            </div>
+
+            <div class="pedido-meta-item">
+              <span class="meta-label">Entrega</span>
+              <strong>{{ formatearFechaEntrega(pedido.fechaEntregaProgramada, pedido.franjaEntrega) }}</strong>
+            </div>
+
+            <div class="pedido-meta-item">
+              <span class="meta-label">Total</span>
+              <strong>{{ pedido.total | currency:'EUR' }}</strong>
+            </div>
+
+            <div class="pedido-meta-item">
+              <span class="meta-label">Franja</span>
+              <strong>{{ pedido.franjaEntrega }}</strong>
+            </div>
+
+            <div class="pedido-meta-item">
+              <span class="meta-label">Pago</span>
+              <strong>{{ obtenerEtiquetaMetodoPago(pedido.metodoPago) }}</strong>
+            </div>
+          </div>
+
+          <div class="pedido-tipo-linea">
+            <ion-chip [color]="pedido.esSuscripcion ? 'warning' : 'medium'">
+              {{ obtenerEtiquetaTipoPedido(pedido.esSuscripcion) }}
+            </ion-chip>
+          </div>
+
+          <div class="direccion-box">
+            <span class="meta-label">Dirección de entrega</span>
+            <strong>{{ pedido.direccionEntrega.nombre }}</strong>
+            <p>{{ pedido.direccionEntrega.linea }}</p>
+            @if (pedido.direccionEntrega.instrucciones !== '') {
+              <p>Instrucciones: {{ pedido.direccionEntrega.instrucciones }}</p>
+            }
+          </div>
+
+          <ion-list lines="none">
+            @for (item of pedido.items; track item.platoId) {
+              <ion-item class="pedido-item">
+                <ion-thumbnail slot="start">
+                  <img [src]="item.imagen" [alt]="item.nombre" />
+                </ion-thumbnail>
+
+                <ion-label>
+                  <h3>{{ item.nombre }}</h3>
+                  <p>{{ item.cantidad }} x {{ item.precioUnitario | currency:'EUR' }}</p>
+                </ion-label>
+
+                <ion-note slot="end">{{ item.subtotal | currency:'EUR' }}</ion-note>
+              </ion-item>
+            }
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+    }
+  }
+</ion-content>
+

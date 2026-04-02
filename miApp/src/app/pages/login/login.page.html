@@ -1,0 +1,112 @@
+<ion-header class="toolbar-logo-grande">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/inicio"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-card>
+    <ion-card-content>
+      <h1>Inicia sesión</h1>
+      <p>Selecciona un usuario real de la base de datos o escribe sus credenciales.</p>
+
+      <ion-item>
+        <ion-label position="stacked">Email</ion-label>
+        <ion-input [(ngModel)]="email" type="email" placeholder="usuario@email.com"></ion-input>
+      </ion-item>
+      @if (mostrarErrorLogin('email')) {
+        <p class="campo-error">Introduce un email válido.</p>
+      }
+
+      <ion-item>
+        <ion-label position="stacked">Password</ion-label>
+        <ion-input [(ngModel)]="password" type="password" placeholder="Password"></ion-input>
+      </ion-item>
+      @if (mostrarErrorLogin('password')) {
+        <p class="campo-error">La password debe tener al menos 6 caracteres.</p>
+      }
+
+      @if (error !== '') {
+        <ion-note color="danger">{{ error }}</ion-note>
+      }
+
+      <ion-button expand="block" [disabled]="cargando" (click)="iniciarSesion()">
+        {{ cargando ? 'Entrando...' : 'Entrar' }}
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+
+  @if (mostrarFormularioRegistro) {
+    <ion-card>
+      <ion-card-content>
+        <h1>Crear usuario</h1>
+        <p>Este formulario crea un usuario nuevo en la base de datos sin modificar los existentes.</p>
+
+        <ion-item>
+          <ion-label position="stacked">Nombre</ion-label>
+          <ion-input [(ngModel)]="nombreRegistro" type="text" placeholder="Nombre completo"></ion-input>
+        </ion-item>
+        @if (mostrarErrorRegistro('nombre')) {
+          <p class="campo-error">El nombre debe tener al menos 2 caracteres.</p>
+        }
+
+        <ion-item>
+          <ion-label position="stacked">Email</ion-label>
+          <ion-input [(ngModel)]="emailRegistro" type="email" placeholder="nuevo@email.com"></ion-input>
+        </ion-item>
+        @if (mostrarErrorRegistro('email')) {
+          <p class="campo-error">Introduce un email válido.</p>
+        }
+
+        <ion-item>
+          <ion-label position="stacked">Password</ion-label>
+          <ion-input [(ngModel)]="passwordRegistro" type="password" placeholder="Mínimo 6 caracteres"></ion-input>
+        </ion-item>
+        @if (mostrarErrorRegistro('password')) {
+          <p class="campo-error">La password debe tener al menos 6 caracteres.</p>
+        }
+
+        @if (errorRegistro !== '') {
+          <ion-note color="danger">{{ errorRegistro }}</ion-note>
+        }
+
+        <ion-button expand="block" fill="outline" [disabled]="cargando" (click)="registrarUsuario()">
+          Crear usuario
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+  }
+
+  @if (usuariosDisponibles.length > 0) {
+    <ion-card>
+      <ion-card-content>
+        <h2>Usuarios disponibles</h2>
+        <ion-list lines="none">
+          @for (usuario of usuariosDisponibles; track usuario.id) {
+            <ion-item button (click)="completarUsuario(usuario)">
+              <ion-label>
+                <h3>{{ usuario.nombre }}</h3>
+                <p>{{ usuario.email }}</p>
+                @if (usuario.email === 'ana@sanzen.local') {
+                  <p>Password demo: ana12345</p>
+                }
+                @if (usuario.email === 'marta@sanzen.local') {
+                  <p>Password demo: marta12345</p>
+                }
+                @if (usuario.email === 'jose@gmail.com') {
+                  <p>Password actual del usuario Jose</p>
+                }
+              </ion-label>
+            </ion-item>
+          }
+        </ion-list>
+        <ion-note color="medium">Pulsa un usuario para autocompletar su email.</ion-note>
+      </ion-card-content>
+    </ion-card>
+  }
+</ion-content>

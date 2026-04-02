@@ -1,0 +1,124 @@
+﻿<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/menu"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  @if (items.length > 0) {
+    <ion-list>
+      @for (item of items; track item.plato.id) {
+        <ion-item>
+          <ion-thumbnail slot="start">
+            <img [src]="item.plato.image" [alt]="item.plato.name" />
+          </ion-thumbnail>
+
+          <ion-label>
+            <h2>{{ item.plato.name }}</h2>
+            <p>Precio: {{ item.plato.price | currency:'EUR' }}</p>
+            <p>Cantidad: {{ item.cantidad }}</p>
+            <p>Subtotal: {{ obtenerSubtotal(item) | currency:'EUR' }}</p>
+          </ion-label>
+
+          <ion-button fill="outline" slot="end" (click)="disminuirCantidad(item.plato.id)">
+            -
+          </ion-button>
+
+          <ion-button fill="outline" slot="end" (click)="aumentarCantidad(item.plato.id)">
+            +
+          </ion-button>
+
+          <ion-button
+            color="danger"
+            fill="outline"
+            slot="end"
+            (click)="eliminarPlato(item.plato.id)">
+            Eliminar
+          </ion-button>
+        </ion-item>
+      }
+    </ion-list>
+
+    <div class="ion-padding-top">
+      @if (suscripcionActiva() && !suscripcionCompleta()) {
+        <p>
+          Debes escoger al menos {{ obtenerPlanSuscripcion() }} unidades para tu suscripción.
+          Llevas {{ obtenerCantidadSeleccionadaSuscripcion() }}/{{ obtenerPlanSuscripcion() }} y te faltan
+          {{ obtenerPlatosPendientesSuscripcion() }}.
+        </p>
+      }
+
+      @if (suscripcionActiva() && obtenerDescuentoSuscripcion() > 0) {
+        <p>Subtotal suscripción: {{ obtenerSubtotalSuscripcionSinPostres() | currency:'EUR' }}</p>
+        <p>
+          Descuento suscripción ({{ obtenerPorcentajeDescuentoSuscripcion() }}%):
+          -{{ obtenerDescuentoSuscripcion() | currency:'EUR' }}
+        </p>
+        <p>Total suscripción: {{ obtenerTotalSuscripcionConDescuento() | currency:'EUR' }}</p>
+        <p>Postres extra: {{ obtenerTotalPostresExtra() | currency:'EUR' }}</p>
+      } @else {
+        <p>Subtotal original: {{ obtenerSubtotalSinDescuento() | currency:'EUR' }}</p>
+      }
+
+      <h2>Total: {{ obtenerTotal() | currency:'EUR' }}</h2>
+
+      @if (!suscripcionActiva() && !cumplePedidoMinimoPlatosSueltos()) {
+        <p>
+          Pedido mínimo de 20 €. Te faltan
+          {{ obtenerImporteFaltantePedidoMinimo() | currency:'EUR' }} para continuar.
+        </p>
+      }
+    </div>
+
+    @if (suscripcionActiva() && postresDisponibles.length > 0) {
+      <div class="ion-padding-top">
+        <h2>Añadir postres al pedido</h2>
+        <ion-list>
+          @for (postre of postresDisponibles; track postre.id) {
+            <ion-item>
+              <ion-thumbnail slot="start">
+                <img [src]="postre.image" [alt]="postre.name" />
+              </ion-thumbnail>
+
+              <ion-label>
+                <h3>{{ postre.name }}</h3>
+                <p>{{ postre.calories }} kcal · {{ postre.price | currency:'EUR' }}</p>
+              </ion-label>
+
+              <ion-button fill="outline" slot="end" (click)="disminuirCantidad(postre.id)">
+                -
+              </ion-button>
+
+              <ion-note slot="end">{{ obtenerCantidadDePlato(postre.id) }}</ion-note>
+
+              <ion-button fill="outline" slot="end" (click)="anadirPostre(postre)">
+                +
+              </ion-button>
+            </ion-item>
+          }
+        </ion-list>
+      </div>
+    }
+
+    <div class="ion-padding-top">
+      <ion-button expand="block" fill="outline" color="medium" (click)="vaciarCarrito()">
+        {{ suscripcionActiva() ? 'Vaciar selección' : 'Vaciar carrito' }}
+      </ion-button>
+
+      <ion-button
+        expand="block"
+        (click)="continuarAlPago()"
+        [disabled]="(suscripcionActiva() && !suscripcionCompleta()) || !cumplePedidoMinimoPlatosSueltos()">
+        Ir al pago
+      </ion-button>
+    </div>
+  } @else {
+    <p>El carrito está vacío.</p>
+  }
+</ion-content>
+

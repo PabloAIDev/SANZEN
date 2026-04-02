@@ -1,0 +1,63 @@
+<ion-header class="toolbar-logo-grande">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/menu"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  @if (plato) {
+    <ion-card>
+      <img [src]="plato.image" [alt]="plato.name" />
+
+      <ion-card-header>
+        <ion-card-title>{{ plato.name }}</ion-card-title>
+        <ion-card-subtitle>
+          {{ plato.category }} · {{ plato.price | currency:'EUR' }}
+        </ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content>
+        <p>{{ plato.description }}</p>
+        <p><strong>Ración:</strong> {{ plato.units }}</p>
+        <p><strong>Calorías:</strong> {{ plato.calories }} kcal</p>
+        <p><strong>HealthScore:</strong> {{ plato.healthScore }}</p>
+
+        <h2>Ingredientes</h2>
+        <ul>
+          @for (ingrediente of plato.ingredients; track ingrediente) {
+            <li>{{ ingrediente }}</li>
+          }
+        </ul>
+
+        <h2>Alérgenos</h2>
+        @if (plato.allergens.length > 0) {
+          <div class="alergenos-container">
+            @for (alergeno of plato.allergens; track alergeno) {
+              <ion-chip>
+                <img
+                  [src]="obtenerIconoAlergeno(alergeno)"
+                  [alt]="alergeno"
+                  class="icono-alergeno"
+                />
+                <ion-label>{{ alergeno }}</ion-label>
+              </ion-chip>
+            }
+          </div>
+        } @else {
+          <p>Sin alérgenos destacados</p>
+        }
+
+        <h2>Macronutrientes</h2>
+        <p><strong>Proteínas:</strong> {{ plato.nutrition.macronutrients.protein_g }} g</p>
+        <p><strong>Carbohidratos:</strong> {{ plato.nutrition.macronutrients.carbohydrates_g }} g</p>
+        <p><strong>Grasas:</strong> {{ plato.nutrition.macronutrients.fat_g }} g</p>
+        <p><strong>Fibra:</strong> {{ plato.nutrition.macronutrients.fiber_g }} g</p>
+      </ion-card-content>
+    </ion-card>
+  }
+</ion-content>

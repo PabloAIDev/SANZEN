@@ -1,0 +1,72 @@
+.pedido-card,
+.estado-vacio-card {
+  margin-bottom: 16px;
+  border-radius: 20px;
+}
+
+.estado-vacio-card ion-card-content {
+  padding: 28px 20px;
+  text-align: center;
+}
+
+.estado-vacio-card h2 {
+  margin: 0 0 8px;
+}
+
+.estado-vacio-card p {
+  margin: 0;
+  color: var(--ion-color-medium);
+}
+
+.pedido-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pedido-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pedido-meta-item {
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(117, 162, 83, 0.08);
+}
+
+.meta-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--ion-color-medium);
+  font-size: 0.82rem;
+}
+
+.pedido-tipo-linea {
+  margin-bottom: 12px;
+}
+
+.direccion-box {
+  margin-bottom: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(211, 106, 46, 0.08);
+}
+
+.direccion-box p {
+  margin: 6px 0 0;
+}
+
+.pedido-item {
+  --padding-start: 0;
+  --inner-padding-end: 0;
+}
+
+ion-thumbnail {
+  --size: 56px;
+  border-radius: 14px;
+  overflow: hidden;
+}

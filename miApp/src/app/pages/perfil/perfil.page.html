@@ -1,0 +1,344 @@
+﻿<ion-header class="perfil-header">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/menu"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="perfil-content">
+  <div class="perfil-shell">
+    <section class="hero-section">
+      <h1>Tu perfil alimentario</h1>
+      <p>Gestiona los datos personales, nutricionales y de pago de tu cuenta.</p>
+      @if (usuarioActual) {
+        <ion-note color="medium">Sesión activa: {{ usuarioActual.nombre }} · {{ usuarioActual.email }}</ion-note>
+      }
+    </section>
+
+    <ion-card class="perfil-card">
+      <ion-card-content>
+        <div class="section-title">
+          <h2>Datos básicos</h2>
+        </div>
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Nombre</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.nombre"
+            name="nombre"
+            type="text"
+            [attr.autocomplete]="obtenerAutocompleteBasico('name')"
+            placeholder="Tu nombre"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('nombre')) {
+          <p class="campo-error">El nombre debe tener al menos 2 caracteres.</p>
+        }
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Email</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.email"
+            name="email"
+            type="email"
+            [attr.autocomplete]="obtenerAutocompleteBasico('email')"
+            placeholder="tu@email.com"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('email')) {
+          <p class="campo-error">Introduce un email válido.</p>
+        }
+
+        <ion-item lines="none">
+          <ion-label position="stacked">Password</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.password"
+            name="password"
+            type="password"
+            [attr.autocomplete]="obtenerAutocompleteBasico('new-password')"
+            placeholder="Mínimo 6 caracteres"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('password')) {
+          <p class="campo-error">La password debe tener al menos 6 caracteres.</p>
+        }
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="perfil-card">
+      <ion-card-content>
+        <div class="section-title">
+          <h2>Alérgenos</h2>
+          <ion-note color="medium">Se usarán como referencia para tus filtros personales.</ion-note>
+        </div>
+
+        <ion-list lines="none" class="alergenos-list">
+          @for (alergeno of alergenosDisponibles; track alergeno.nombre) {
+            <ion-item class="alergeno-item">
+              <div class="alergeno-info">
+                <img [src]="alergeno.icono" [alt]="alergeno.nombre" class="alergeno-icono" />
+                <span>{{ alergeno.nombre }}</span>
+              </div>
+
+              <ion-checkbox
+                slot="end"
+                [checked]="perfil.alergenos.includes(alergeno.nombre)"
+                (ionChange)="toggleAlergeno(alergeno.nombre, $event)"
+              ></ion-checkbox>
+            </ion-item>
+          }
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="perfil-card">
+      <ion-card-content>
+        <div class="section-title">
+          <h2>Objetivo nutricional</h2>
+          <ion-note color="medium">Puedes dejarlo sin seleccionar.</ion-note>
+        </div>
+
+        <ion-radio-group [(ngModel)]="perfil.objetivoNutricional" name="objetivoNutricional">
+          <ion-item lines="none">
+            <ion-label>Sin objetivo</ion-label>
+            <ion-radio slot="end" [value]="null"></ion-radio>
+          </ion-item>
+
+          @for (objetivo of objetivosNutricionales; track objetivo.valor) {
+            <ion-item lines="none">
+              <ion-label>{{ objetivo.etiqueta }}</ion-label>
+              <ion-radio slot="end" [value]="objetivo.valor"></ion-radio>
+            </ion-item>
+          }
+        </ion-radio-group>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="perfil-card">
+      <ion-card-content>
+        <div class="section-title">
+          <h2>Preferencias de composición</h2>
+        </div>
+
+        <ion-list lines="none">
+          @for (preferencia of preferenciasDisponibles; track preferencia.valor) {
+            <ion-item>
+              <ion-label>{{ preferencia.etiqueta }}</ion-label>
+              <ion-checkbox
+                slot="end"
+                [checked]="perfil.preferenciasComposicion.includes(preferencia.valor)"
+                (ionChange)="togglePreferencia(preferencia.valor, $event)"
+              ></ion-checkbox>
+            </ion-item>
+          }
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="perfil-card">
+      <ion-card-content>
+        <div class="section-title">
+          <h2>Dirección principal</h2>
+          <ion-note color="medium">Se usará como dirección por defecto en el pago.</ion-note>
+        </div>
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Nombre de dirección</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.direccionPrincipal!.nombre"
+            name="direccionNombre"
+            type="text"
+            [attr.autocomplete]="obtenerAutocompleteDireccion('address-line1')"
+            placeholder="Casa"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('direccionNombre')) {
+          <p class="campo-error">El nombre de dirección debe tener al menos 2 caracteres.</p>
+        }
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Calle y número</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.direccionPrincipal!.calleNumero"
+            name="calleNumero"
+            type="text"
+            [attr.autocomplete]="obtenerAutocompleteDireccion('street-address')"
+            placeholder="Calle Mayor 12"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('calleNumero')) {
+          <p class="campo-error">Introduce una calle y número válidos.</p>
+        }
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Ciudad</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.direccionPrincipal!.ciudad"
+            name="ciudad"
+            type="text"
+            [attr.autocomplete]="obtenerAutocompleteDireccion('address-level2')"
+            placeholder="Madrid"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('ciudad')) {
+          <p class="campo-error">La ciudad debe tener al menos 2 caracteres.</p>
+        }
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Código postal</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.direccionPrincipal!.codigoPostal"
+            name="codigoPostal"
+            type="text"
+            inputmode="numeric"
+            maxlength="5"
+            [attr.autocomplete]="obtenerAutocompleteDireccion('postal-code')"
+            placeholder="28001"
+            (ionInput)="actualizarCodigoPostal($event)"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('codigoPostal')) {
+          <p class="campo-error">El código postal debe tener 5 dígitos.</p>
+        }
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Provincia</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.direccionPrincipal!.provincia"
+            name="provincia"
+            type="text"
+            [attr.autocomplete]="obtenerAutocompleteDireccion('address-level1')"
+            placeholder="Madrid"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('provincia')) {
+          <p class="campo-error">La provincia debe tener al menos 2 caracteres.</p>
+        }
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Teléfono</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.direccionPrincipal!.telefono"
+            name="telefono"
+            type="text"
+            inputmode="numeric"
+            maxlength="9"
+            [attr.autocomplete]="obtenerAutocompleteDireccion('tel')"
+            placeholder="600123123"
+            (ionInput)="actualizarTelefono($event)"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('telefono')) {
+          <p class="campo-error">El teléfono debe tener 9 dígitos.</p>
+        }
+
+        <ion-item lines="none">
+          <ion-label position="stacked">Instrucciones</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.direccionPrincipal!.instrucciones"
+            name="instrucciones"
+            type="text"
+            autocomplete="off"
+            placeholder="Opcional"
+          ></ion-input>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card class="perfil-card">
+      <ion-card-content>
+        <div class="section-title">
+          <h2>Tarjeta principal</h2>
+          <ion-note color="medium">Se reutilizará automáticamente en la página de pago.</ion-note>
+        </div>
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Nombre del titular</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.tarjetaPrincipal!.nombreTitular"
+            name="nombreTitular"
+            type="text"
+            [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-name')"
+            placeholder="Cómo aparece en la tarjeta"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('nombreTitular')) {
+          <p class="campo-error">Introduce el nombre del titular tal y como aparece en la tarjeta.</p>
+        }
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Número de tarjeta</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.tarjetaPrincipal!.numeroTarjeta"
+            name="numeroTarjeta"
+            type="text"
+            inputmode="numeric"
+            maxlength="19"
+            [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-number')"
+            placeholder="1234 5678 9012 3456"
+            (ionInput)="actualizarNumeroTarjeta($event)"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('numeroTarjeta')) {
+          <p class="campo-error">Introduce una tarjeta válida de 16 dígitos.</p>
+        }
+
+        <ion-item lines="inset">
+          <ion-label position="stacked">Fecha de caducidad</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.tarjetaPrincipal!.fechaCaducidad"
+            name="fechaCaducidad"
+            type="text"
+            inputmode="numeric"
+            maxlength="5"
+            [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-exp')"
+            placeholder="MM/AA"
+            (ionInput)="actualizarFechaCaducidad($event)"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('fechaCaducidad')) {
+          <p class="campo-error">Usa el formato MM/AA y una fecha no caducada.</p>
+        }
+
+        <ion-item lines="none">
+          <ion-label position="stacked">CVV</ion-label>
+          <ion-input
+            [(ngModel)]="perfil.tarjetaPrincipal!.cvv"
+            name="cvv"
+            type="password"
+            inputmode="numeric"
+            maxlength="3"
+            [attr.autocomplete]="obtenerAutocompleteCvv()"
+            placeholder="123"
+            (ionInput)="actualizarCvv($event)"
+          ></ion-input>
+        </ion-item>
+        @if (mostrarErrorCampo('cvv')) {
+          <p class="campo-error">El CVV debe tener exactamente 3 dígitos.</p>
+        }
+      </ion-card-content>
+    </ion-card>
+
+    <div class="acciones">
+      <ion-button expand="block" size="large" class="guardar-button" (click)="guardarPerfil()">
+        Guardar perfil
+      </ion-button>
+
+      <ion-button
+        expand="block"
+        fill="outline"
+        size="large"
+        class="reset-button"
+        (click)="restablecerPreferencias()"
+      >
+        Restablecer preferencias
+      </ion-button>
+    </div>
+  </div>
+</ion-content>
+
+

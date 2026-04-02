@@ -1,0 +1,105 @@
+<ion-header class="toolbar-logo-grande">
+  <ion-toolbar>
+    <ion-title>
+      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="confirmacion-content">
+  <div class="confirmacion-shell">
+    <section class="hero">
+      <span class="hero-kicker">Pago completado</span>
+      <h1>Tu pedido ya está en marcha</h1>
+      <p>La simulación de pago se ha realizado correctamente y el pedido ha quedado registrado.</p>
+    </section>
+
+    @if (ultimoPedido) {
+      <ion-card class="confirmacion-card">
+        <ion-card-header>
+          <div class="pedido-top">
+            <div>
+              <ion-note>Número de pedido</ion-note>
+              <ion-card-title>{{ ultimoPedido.numeroPedido }}</ion-card-title>
+            </div>
+
+            <ion-chip [color]="obtenerColorEstado(ultimoPedido.estado)">
+              {{ obtenerEtiquetaEstado(ultimoPedido.estado) }}
+            </ion-chip>
+          </div>
+        </ion-card-header>
+
+        <ion-card-content>
+          <div class="pedido-meta-grid">
+            <div class="pedido-meta-item">
+              <span class="meta-label">Fecha</span>
+              <strong>{{ formatearFecha(ultimoPedido.fechaCreacion) }}</strong>
+            </div>
+
+            <div class="pedido-meta-item">
+              <span class="meta-label">Entrega</span>
+              <strong>{{ formatearFechaEntrega(ultimoPedido.fechaEntregaProgramada, ultimoPedido.franjaEntrega) }}</strong>
+            </div>
+
+            <div class="pedido-meta-item">
+              <span class="meta-label">Total</span>
+              <strong>{{ ultimoPedido.total | currency:'EUR' }}</strong>
+            </div>
+
+            <div class="pedido-meta-item">
+              <span class="meta-label">Franja</span>
+              <strong>{{ ultimoPedido.franjaEntrega }}</strong>
+            </div>
+
+            <div class="pedido-meta-item">
+              <span class="meta-label">Pago</span>
+              <strong>{{ obtenerEtiquetaMetodoPago(ultimoPedido.metodoPago) }}</strong>
+            </div>
+          </div>
+
+          <div class="pedido-tipo-linea">
+            <ion-chip [color]="ultimoPedido.esSuscripcion ? 'warning' : 'medium'">
+              {{ obtenerEtiquetaTipoPedido(ultimoPedido.esSuscripcion) }}
+            </ion-chip>
+          </div>
+
+          <div class="direccion-box">
+            <span class="meta-label">Dirección de entrega</span>
+            <strong>{{ ultimoPedido.direccionEntrega.nombre }}</strong>
+            <p>{{ ultimoPedido.direccionEntrega.linea }}</p>
+            @if (ultimoPedido.direccionEntrega.instrucciones !== '') {
+              <p>Instrucciones: {{ ultimoPedido.direccionEntrega.instrucciones }}</p>
+            }
+          </div>
+
+          <ion-list lines="none">
+            @for (item of ultimoPedido.items; track item.platoId) {
+              <ion-item class="pedido-item">
+                <ion-thumbnail slot="start">
+                  <img [src]="item.imagen" [alt]="item.nombre" />
+                </ion-thumbnail>
+
+                <ion-label>
+                  <h3>{{ item.nombre }}</h3>
+                  <p>{{ item.cantidad }} x {{ item.precioUnitario | currency:'EUR' }}</p>
+                </ion-label>
+
+                <ion-note slot="end">{{ item.subtotal | currency:'EUR' }}</ion-note>
+              </ion-item>
+            }
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    <div class="acciones">
+      <ion-button expand="block" [routerLink]="['/mis-pedidos']">
+        Ver mis pedidos
+      </ion-button>
+
+      <ion-button expand="block" fill="outline" [routerLink]="['/menu']">
+        Volver al menú
+      </ion-button>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,178 @@
+:host {
+  display: contents;
+}
+
+.assistant-trigger {
+  position: fixed;
+  right: 18px;
+  bottom: 92px;
+  z-index: 1200;
+  --background: transparent;
+  --background-hover: transparent;
+  --background-activated: transparent;
+  --background-focused: transparent;
+  --color: #ffffff;
+  --border-radius: 999px;
+  width: 58px;
+  height: 58px;
+  margin: 0;
+  box-shadow: none;
+}
+
+.assistant-trigger::part(native) {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.assistant-trigger-menu {
+  right: 72px;
+  bottom: 12px;
+}
+
+.assistant-modal-title {
+  position: static;
+  top: auto;
+  right: auto;
+  left: auto;
+  width: auto;
+  height: auto;
+  transform: none;
+  pointer-events: auto;
+}
+
+.assistant-modal-title::after {
+  display: none;
+  content: none;
+}
+
+.assistant-trigger-image {
+  display: block;
+  width: 58px;
+  height: 58px;
+  margin: auto;
+  object-fit: contain;
+}
+
+.assistant-content {
+  --padding-top: 16px;
+  --padding-bottom: 20px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+}
+
+.assistant-screen-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(31, 26, 23, 0.08);
+  color: #1f1a17;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.assistant-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 18px;
+}
+
+.assistant-suggestions ion-chip {
+  cursor: pointer;
+}
+
+.assistant-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 10px;
+}
+
+.assistant-message {
+  max-width: 88%;
+  padding: 12px 14px;
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(31, 26, 23, 0.08);
+}
+
+.assistant-message p {
+  margin: 0;
+  color: #1f1a17;
+  line-height: 1.45;
+}
+
+.assistant-message-bot {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.assistant-message-user {
+  align-self: flex-end;
+  background: #d36a2e;
+}
+
+.assistant-message-user p {
+  color: #ffffff;
+}
+
+.assistant-message-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.assistant-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.assistant-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px 16px 16px;
+  background: rgba(255, 255, 255, 0.92);
+  border-top: 1px solid rgba(31, 26, 23, 0.08);
+}
+
+.assistant-input-row ion-textarea {
+  flex: 1;
+  --background: #ffffff;
+  --border-radius: 18px;
+  --padding-start: 14px;
+  --padding-end: 14px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+  border: 1px solid rgba(31, 26, 23, 0.12);
+  border-radius: 18px;
+}
+
+.assistant-send-button {
+  --background: #1f1a17;
+  --color: #ffffff;
+  --border-radius: 16px;
+  min-height: 48px;
+}
+
+@media (max-width: 640px) {
+  .assistant-trigger {
+    right: 14px;
+    bottom: 86px;
+  }
+
+  .assistant-trigger-menu {
+    right: 66px;
+    bottom: 8px;
+  }
+
+  .assistant-message {
+    max-width: 94%;
+  }
+}

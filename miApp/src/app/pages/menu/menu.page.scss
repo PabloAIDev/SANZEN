@@ -1,0 +1,388 @@
+.menu-shell {
+  min-height: 100%;
+}
+
+.menu-content {
+  --padding-bottom: 250px;
+}
+
+.menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 59;
+  background: rgba(20, 18, 16, 0.24);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.menu-backdrop.abierto {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.menu-lateral {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 60;
+  width: min(320px, 84vw);
+  padding-top: 12px;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at top left, rgba(228, 175, 133, 0.34), transparent 32%),
+    radial-gradient(circle at top right, rgba(133, 172, 156, 0.24), transparent 28%),
+    linear-gradient(180deg, #fcf8f2 0%, #efe5d9 100%);
+  box-shadow: 0 22px 46px rgba(24, 18, 14, 0.18);
+  transform: translateX(-100%);
+  transition: transform 0.24s ease;
+}
+
+.menu-lateral.abierto {
+  transform: translateX(0);
+}
+
+.menu-lateral-header {
+  margin: 24px 16px 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.menu-lateral ion-list {
+  padding: 0 14px 18px;
+  background: transparent;
+}
+
+.menu-lateral ion-item {
+  --background: rgba(255, 250, 244, 0.72);
+  --border-color: transparent;
+  --color: #1f1a17;
+  --inner-padding-end: 14px;
+  --padding-start: 14px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(72, 48, 34, 0.08);
+  border-radius: 18px;
+  box-shadow: 0 10px 24px rgba(52, 36, 28, 0.05);
+  backdrop-filter: blur(8px);
+  font-weight: 600;
+}
+
+.menu-lateral ion-item ion-icon {
+  color: #b65629;
+  font-size: 1.1rem;
+}
+
+.alergenos-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.icono-alergeno {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.boton-header-carrito {
+  position: relative;
+}
+
+.boton-header-carrito ion-icon {
+  font-size: 1.6rem;
+}
+
+.boton-header-carrito ion-badge {
+  position: absolute;
+  top: -2px;
+  right: -8px;
+}
+
+.imagen-plato-wrapper {
+  position: relative;
+}
+
+.carrito-overlay {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0.18));
+}
+
+.carrito-control-boton {
+  --color: #ffffff;
+  --padding-start: 10px;
+  --padding-end: 10px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.carrito-cantidad {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.top-healthy-chip {
+  margin: 0 0 8px 0;
+  font-weight: 600;
+}
+
+.filtros-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.pedido-individual-banner {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: #315f8d;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-align: center;
+}
+
+.suscripcion-banner {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #315f8d;
+  border: 1px solid #315f8d;
+  color: #ffffff;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.suscripcion-banner-acciones {
+  display: flex;
+  justify-content: flex-start;
+  margin: -4px 0 16px;
+}
+
+.suscripcion-banner-acciones ion-button {
+  --border-color: #315f8d;
+  --color: #315f8d;
+  --border-radius: 14px;
+  font-weight: 700;
+}
+
+.recomendacion-bloque {
+  margin-bottom: 20px;
+  padding: 18px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(212, 140, 67, 0.28), transparent 38%),
+    linear-gradient(135deg, #fff6e7, #f6fbef);
+  border: 1px solid rgba(212, 140, 67, 0.22);
+}
+
+.recomendacion-encabezado {
+  margin-bottom: 12px;
+}
+
+.recomendacion-encabezado p {
+  margin: 0;
+  color: #5a604f;
+  line-height: 1.5;
+}
+
+.recomendacion-kicker {
+  display: inline-block;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #d36a2e;
+  color: #fffaf5;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.recomendacion-grid {
+  padding: 0;
+}
+
+.recomendacion-card {
+  margin: 0;
+  overflow: hidden;
+}
+
+.recomendacion-imagen {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.filtros-activos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filtro-activo-chip {
+  cursor: pointer;
+}
+
+.sin-resultados {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  text-align: center;
+  color: var(--ion-color-medium);
+}
+
+.acciones-modal {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.modal-filtros-encabezado {
+  margin-bottom: 18px;
+}
+
+.alergenos-filtro-grid {
+  padding: 0;
+}
+
+.alergenos-filtro-grid ion-row {
+  row-gap: 8px;
+}
+
+.alergenos-filtro-grid ion-col {
+  padding: 0 4px;
+}
+
+.alergenos-filtro-item {
+  --inner-padding-end: 10px;
+  margin: 0;
+}
+
+.resumen-inferior {
+  position: fixed;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  z-index: 25;
+  width: 100%;
+  padding: 14px 16px 16px;
+  border-radius: 0 0 22px 22px;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 18px 40px rgba(18, 25, 17, 0.24);
+  backdrop-filter: blur(10px);
+}
+
+.resumen-inferior-cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.resumen-inferior-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.resumen-inferior-accesos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.resumen-inferior-fab-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.resumen-inferior-fab-row ion-fab-button {
+  width: 50px;
+  height: 50px;
+}
+
+.resumen-inferior-suscripcion {
+  --border-color: #315f8d;
+  --color: #315f8d;
+  --border-radius: 14px;
+  margin: 0;
+  min-height: 36px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.resumen-inferior-total {
+  display: block;
+  margin-bottom: 4px;
+  color: #000000;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.resumen-inferior-top {
+  display: block;
+  margin-bottom: 4px;
+  color: #000000;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.resumen-inferior-total span {
+  font-size: 1rem;
+  color: #000000;
+}
+
+.resumen-inferior-descuento {
+  display: block;
+  color: #315f8d;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.resumen-inferior-boton {
+  --background: #000000;
+  --color: #fffaf5;
+  --border-radius: 16px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.resumen-inferior-acciones {
+  display: block;
+}
+
+.resumen-inferior-acciones ion-button {
+  margin: 0;
+}
+
+.modal-seleccion-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 18px 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: #f6f7f3;
+}

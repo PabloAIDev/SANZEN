@@ -1,0 +1,28 @@
+.alergenos-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.icono-alergeno {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+.acciones-carrito {
+  margin: 20px 0;
+}
+
+.cantidad-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cantidad-valor {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 600;
+}

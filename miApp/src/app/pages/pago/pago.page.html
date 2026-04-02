@@ -1,0 +1,201 @@
+﻿<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/resumen"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Resumen del pedido</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-list>
+        @for (item of items; track item.plato.id) {
+          <ion-item>
+            <ion-label>
+              <h2>{{ item.plato.name }}</h2>
+              <p>Cantidad: {{ item.cantidad }}</p>
+            </ion-label>
+            <ion-label slot="end">
+              {{ obtenerSubtotal(item) | currency:'EUR' }}
+            </ion-label>
+          </ion-item>
+        }
+      </ion-list>
+
+      <div class="total-bloque">
+        <strong>Total: {{ obtenerTotal() | currency:'EUR' }}</strong>
+      </div>
+
+      <p class="detalle-seleccion">
+        Entrega prevista: {{ obtenerFechaEntregaResumen() }}
+      </p>
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Dirección de entrega</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      @if (obtenerDireccionesDisponibles().length > 0) {
+        <ion-item>
+          <ion-label>Dirección</ion-label>
+          <ion-select [(ngModel)]="direccionSeleccionadaId" interface="popover">
+            @for (direccion of obtenerDireccionesDisponibles(); track direccion.id) {
+              <ion-select-option [value]="direccion.id">
+                {{ direccion.nombre }}
+              </ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+
+        @if (obtenerDireccionSeleccionada()) {
+          <p class="detalle-seleccion">
+            {{ obtenerDireccionSeleccionada()?.linea }}
+          </p>
+
+          @if (obtenerDireccionSeleccionada()?.instrucciones) {
+            <p class="detalle-seleccion">
+              Instrucciones: {{ obtenerDireccionSeleccionada()?.instrucciones }}
+            </p>
+          }
+        }
+      } @else {
+        <p class="detalle-seleccion">
+          Completa antes tu perfil para disponer de una dirección de entrega.
+        </p>
+      }
+    </ion-card-content>
+  </ion-card>
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Franja horaria de entrega</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label>Franja</ion-label>
+        <ion-select [(ngModel)]="franjaSeleccionada" interface="popover">
+          <ion-select-option value="10:00-13:00">10:00-13:00</ion-select-option>
+          <ion-select-option value="13:00-16:00">13:00-16:00</ion-select-option>
+          <ion-select-option value="16:00-19:00">16:00-19:00</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-card-content>
+  </ion-card>
+
+  @if (mostrarSelectorDiaSuscripcion()) {
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Día semanal de entrega</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-label>Día de tu suscripción</ion-label>
+          <ion-select
+            [value]="diaEntregaSuscripcion"
+            interface="popover"
+            (ionChange)="actualizarDiaEntregaSuscripcion($event)">
+            @for (dia of diasEntregaSuscripcion; track dia.valor) {
+              <ion-select-option [value]="dia.valor">{{ dia.etiqueta }}</ion-select-option>
+            }
+          </ion-select>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+  }
+
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Método de pago</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-radio-group [(ngModel)]="metodoPagoSeleccionado">
+        <ion-list>
+          <ion-item>
+            <ion-label>Tarjeta</ion-label>
+            <ion-radio slot="end" value="tarjeta"></ion-radio>
+          </ion-item>
+        </ion-list>
+      </ion-radio-group>
+
+      @if (metodoPagoSeleccionado === 'tarjeta') {
+        <div class="tarjeta-formulario">
+          <ion-item>
+            <ion-label position="stacked" class="tarjeta-label">Nombre del titular</ion-label>
+            <ion-input [(ngModel)]="nombreTitular"></ion-input>
+          </ion-item>
+          @if (mostrarErrorTarjeta('titular')) {
+            <p class="campo-error">Introduce el nombre del titular tal y como aparece en la tarjeta.</p>
+          }
+
+          <ion-item>
+            <ion-label position="stacked" class="tarjeta-label">Número de tarjeta</ion-label>
+            <ion-input
+              inputmode="numeric"
+              maxlength="23"
+              [(ngModel)]="numeroTarjeta"
+              (ionInput)="actualizarNumeroTarjeta($event)">
+            </ion-input>
+          </ion-item>
+          @if (mostrarErrorTarjeta('numero')) {
+            <p class="campo-error">Introduce una tarjeta de 16 dígitos.</p>
+          }
+
+          <ion-item>
+            <ion-label position="stacked" class="tarjeta-label">Fecha de caducidad</ion-label>
+            <ion-input
+              placeholder="MM/AA"
+              inputmode="numeric"
+              maxlength="5"
+              [(ngModel)]="fechaCaducidad"
+              (ionInput)="actualizarFechaCaducidad($event)">
+            </ion-input>
+          </ion-item>
+          @if (mostrarErrorTarjeta('fecha')) {
+            <p class="campo-error">Usa el formato MM/AA y una fecha no caducada.</p>
+          }
+
+          <ion-item>
+            <ion-label position="stacked" class="tarjeta-label">CVV</ion-label>
+            <ion-input
+              type="password"
+              inputmode="numeric"
+              maxlength="3"
+              [(ngModel)]="cvv"
+              (ionInput)="actualizarCvv($event)">
+            </ion-input>
+          </ion-item>
+          @if (mostrarErrorTarjeta('cvv')) {
+            <p class="campo-error">El CVV debe tener exactamente 3 dígitos.</p>
+          }
+        </div>
+      }
+    </ion-card-content>
+  </ion-card>
+</ion-content>
+
+<ion-footer>
+  <ion-toolbar>
+    <div class="footer-pago">
+      <div class="footer-total">
+        Total: {{ obtenerTotal() | currency:'EUR' }}
+      </div>
+
+      <ion-button
+        expand="block"
+        [disabled]="!puedeConfirmarPedido() || procesandoPago"
+        (click)="confirmarPedido()">
+        {{ esPedidoSuscripcion() ? 'Guardar cambios' : 'Confirmar pedido' }}
+      </ion-button>
+    </div>
+  </ion-toolbar>
+</ion-footer>
+

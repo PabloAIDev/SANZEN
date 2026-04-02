@@ -1,0 +1,186 @@
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+@import '@ionic/angular/css/palettes/dark.system.css';
+
+:root {
+  --sanzen-bg:
+    radial-gradient(circle at top left, rgba(228, 175, 133, 0.28), transparent 34%),
+    radial-gradient(circle at top right, rgba(133, 172, 156, 0.18), transparent 28%),
+    linear-gradient(180deg, #fbf7f1 0%, #f4eee5 100%);
+  --sanzen-text: #1f1a17;
+  --sanzen-form-blue: #1f5fd1;
+}
+
+ion-content {
+  --background: var(--sanzen-bg);
+  color: var(--sanzen-text);
+}
+
+app-login ion-item,
+app-perfil ion-item,
+app-pago ion-item,
+app-suscripcion ion-item,
+app-menu .filtros-container ion-item,
+app-menu .alergenos-filtro-item,
+app-menu ion-radio-group ion-item,
+app-menu ion-list ion-item {
+  --color: var(--sanzen-text) !important;
+}
+
+app-login ion-item ion-label,
+app-perfil ion-item ion-label,
+app-pago ion-item ion-label,
+app-suscripcion ion-item ion-label,
+app-menu .filtros-container ion-label,
+app-menu .alergenos-filtro-item ion-label,
+app-menu ion-radio-group ion-label,
+app-menu ion-list ion-item ion-label {
+  color: var(--sanzen-text) !important;
+  font-weight: 600;
+}
+
+app-login ion-input,
+app-perfil ion-input,
+app-pago ion-input,
+app-suscripcion ion-select,
+app-pago ion-select,
+app-menu ion-select,
+app-menu ion-searchbar {
+  --color: var(--sanzen-form-blue) !important;
+  color: var(--sanzen-form-blue) !important;
+  --placeholder-color: rgba(31, 95, 209, 0.55);
+}
+
+app-login ion-input::part(native),
+app-perfil ion-input::part(native),
+app-pago ion-input::part(native),
+app-menu ion-searchbar::part(input) {
+  color: var(--sanzen-form-blue) !important;
+}
+
+app-suscripcion ion-select::part(text),
+app-pago ion-select::part(text),
+app-menu ion-select::part(text) {
+  color: var(--sanzen-form-blue) !important;
+}
+
+app-login ion-select::part(icon),
+app-suscripcion ion-select::part(icon),
+app-pago ion-select::part(icon),
+app-menu ion-select::part(icon),
+app-login ion-input::part(clear-button),
+app-perfil ion-input::part(clear-button),
+app-pago ion-input::part(clear-button),
+app-menu ion-searchbar::part(search-icon),
+app-menu ion-searchbar::part(clear-button) {
+  color: var(--sanzen-form-blue) !important;
+}
+
+ion-header ion-toolbar,
+.toolbar-logo-grande ion-toolbar {
+  --min-height: 92px;
+  position: relative;
+}
+
+ion-header ion-title {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 376px;
+  height: 76px;
+  margin: 0 auto;
+  padding: 0;
+  text-align: center;
+  transform: translate(-90px, -50%);
+  pointer-events: none;
+}
+
+ion-header ion-title::after {
+  content: '';
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  background: url('/assets/img/letrasSanzen.png') center / contain no-repeat;
+}
+
+.app-header-logo {
+  display: none;
+  width: auto;
+  height: 46px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.side-menu-logo {
+  display: block;
+  width: auto;
+  height: 256px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+ion-button ion-icon[name="menu-outline"] {
+  width: 2.9rem !important;
+  height: 2.9rem !important;
+  font-size: 2.9rem !important;
+}
+
+ion-button:has(ion-icon[name="menu-outline"]) {
+  min-width: 56px;
+  min-height: 56px;
+}
+
+ion-button ion-icon[name="person-outline"] {
+  width: 2.45rem !important;
+  height: 2.45rem !important;
+  font-size: 2.45rem !important;
+}
+
+ion-button:has(ion-icon[name="person-outline"]) {
+  min-width: 56px;
+  min-height: 56px;
+}
+
+ion-header ion-buttons,
+ion-header ion-button {
+  display: flex;
+  align-items: center;
+}
