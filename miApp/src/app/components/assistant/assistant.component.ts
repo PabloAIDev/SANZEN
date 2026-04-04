@@ -62,6 +62,7 @@ export class AssistantComponent implements OnInit, OnDestroy {
   mensajeActual = '';
   pantallaActual = 'inicio';
   mensajes: AssistantMessage[] = [];
+  ultimoOrigenRespuesta: 'openai' | 'fallback' | null = null;
 
   private routerSubscription?: Subscription;
   private sessionSubscription?: Subscription;
@@ -148,12 +149,14 @@ export class AssistantComponent implements OnInit, OnDestroy {
         text: respuesta.message,
         actions: respuesta.actions
       });
+      this.ultimoOrigenRespuesta = respuesta.source ?? null;
     } catch {
       this.mensajes.push({
         id: crypto.randomUUID(),
         role: 'assistant',
         text: 'No he podido responder ahora mismo. Inténtalo de nuevo en unos segundos.'
       });
+      this.ultimoOrigenRespuesta = null;
     } finally {
       this.enviando = false;
     }
@@ -170,7 +173,20 @@ export class AssistantComponent implements OnInit, OnDestroy {
 
   limpiarConversacion(): void {
     this.mensajes = [];
+    this.ultimoOrigenRespuesta = null;
     this.sembrarMensajeInicial();
+  }
+
+  obtenerEtiquetaOrigen(): string {
+    if (this.ultimoOrigenRespuesta === 'openai') {
+      return 'Motor: OpenAI';
+    }
+
+    if (this.ultimoOrigenRespuesta === 'fallback') {
+      return 'Motor: local';
+    }
+
+    return '';
   }
 
   obtenerSugerenciasRapidas(): string[] {

@@ -87,6 +87,103 @@ function tarjetaCompleta(tarjeta) {
   );
 }
 
+function emailValido(valor) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizarTexto(valor));
+}
+
+function unique(items) {
+  return [...new Set(items.filter(Boolean))];
+}
+
+function obtenerCamposFaltantesDireccion(direccion) {
+  if (!direccion) {
+    return [
+      'nombre de entrega',
+      'calle y numero',
+      'ciudad',
+      'codigo postal',
+      'provincia',
+      'telefono'
+    ];
+  }
+
+  const missing = [];
+
+  if (!textoValido(direccion.nombre, 2)) {
+    missing.push('nombre de entrega');
+  }
+
+  if (!textoValido(direccion.calle_numero, 5)) {
+    missing.push('calle y numero');
+  }
+
+  if (!textoValido(direccion.ciudad, 2)) {
+    missing.push('ciudad');
+  }
+
+  if (!codigoPostalValido(direccion.codigo_postal)) {
+    missing.push('codigo postal');
+  }
+
+  if (!textoValido(direccion.provincia, 2)) {
+    missing.push('provincia');
+  }
+
+  if (!telefonoValido(direccion.telefono)) {
+    missing.push('telefono');
+  }
+
+  return missing;
+}
+
+function obtenerCamposFaltantesTarjeta(tarjeta) {
+  if (!tarjeta) {
+    return [
+      'nombre del titular',
+      'numero de tarjeta',
+      'fecha de caducidad',
+      'CVV'
+    ];
+  }
+
+  const missing = [];
+
+  if (!textoValido(tarjeta.nombre_titular, 3)) {
+    missing.push('nombre del titular');
+  }
+
+  if (!numeroTarjetaValido(tarjeta.numero_enmascarado)) {
+    missing.push('numero de tarjeta');
+  }
+
+  if (!fechaCaducidadValida(tarjeta.fecha_caducidad)) {
+    missing.push('fecha de caducidad');
+  }
+
+  if (!cvvValido(tarjeta.cvv)) {
+    missing.push('CVV');
+  }
+
+  return missing;
+}
+
+function obtenerCamposBasicosFaltantes(usuario, direccion) {
+  const missing = [];
+
+  if (!textoValido(usuario?.nombre, 2)) {
+    missing.push('nombre');
+  }
+
+  if (!emailValido(usuario?.email)) {
+    missing.push('email');
+  }
+
+  return unique([
+    ...missing,
+    ...obtenerCamposFaltantesDireccion(direccion)
+  ]);
+}
+
 function parseJsonArray(value) {
   if (Array.isArray(value)) {
     return value.filter(Boolean);
@@ -163,7 +260,12 @@ function normalizarProfileContext(context) {
     allergies: normalizarArrayTextos(profile.allergies),
     objective: normalizarTexto(profile.objective) || null,
     compositionPreferences: normalizarArrayTextos(profile.compositionPreferences),
-    profileCompleteForPayment: Boolean(profile.profileCompleteForPayment)
+    basicComplete: Boolean(profile.basicComplete),
+    addressComplete: Boolean(profile.addressComplete),
+    cardComplete: Boolean(profile.cardComplete),
+    profileCompleteForPayment: Boolean(profile.profileCompleteForPayment),
+    missingBasicFields: normalizarArrayTextos(profile.missingBasicFields),
+    missingPaymentFields: normalizarArrayTextos(profile.missingPaymentFields)
   };
 }
 
@@ -186,6 +288,11 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
     cart: normalizarCartContext(clientContext),
     firstOrder: normalizarFirstOrderContext(clientContext),
     lastOrder: null,
+    nextScheduledOrder: null,
+    ordersSummary: {
+      totalOrders: 0,
+      recentOrders: []
+    },
     catalog: [],
     appRules: {
       individualMinimumAmount: 20,
@@ -270,12 +377,23 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
       [userId]
     );
 
+    const missingBasicFields = obtenerCamposBasicosFaltantes(user, direccion);
+    const missingPaymentFields = unique([
+      ...obtenerCamposFaltantesDireccion(direccion),
+      ...obtenerCamposFaltantesTarjeta(tarjeta)
+    ]);
+
     context.profile = {
       name: context.user?.name ?? context.profile.name,
       allergies: alergenosRows.map((row) => normalizarTexto(row.nombre)),
       objective: perfil?.objetivo_nutricional ?? null,
       compositionPreferences: preferenciasRows.map((row) => normalizarTexto(row.nombre)),
-      profileCompleteForPayment: direccionCompleta(direccion) && tarjetaCompleta(tarjeta)
+      basicComplete: missingBasicFields.length === 0,
+      addressComplete: direccionCompleta(direccion),
+      cardComplete: tarjetaCompleta(tarjeta),
+      profileCompleteForPayment: direccionCompleta(direccion) && tarjetaCompleta(tarjeta),
+      missingBasicFields,
+      missingPaymentFields
     };
 
     const [[subscriptionRow]] = await pool.query(
@@ -347,6 +465,68 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
     );
 
     const lastOrderRow = pedidoRows[0] ?? null;
+
+    const [[countRow]] = await pool.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM pedidos
+      WHERE usuario_id = ?
+      `,
+      [userId]
+    );
+
+    const [recentOrderRows] = await pool.query(
+      `
+      SELECT
+        numero_pedido,
+        fecha_entrega_programada,
+        total,
+        es_suscripcion
+      FROM pedidos
+      WHERE usuario_id = ?
+      ORDER BY fecha_creacion DESC, id DESC
+      LIMIT 3
+      `,
+      [userId]
+    );
+
+    const [upcomingOrderRows] = await pool.query(
+      `
+      SELECT
+        numero_pedido,
+        fecha_entrega_programada,
+        total,
+        es_suscripcion
+      FROM pedidos
+      WHERE usuario_id = ? AND fecha_entrega_programada >= NOW()
+      ORDER BY fecha_entrega_programada ASC, id ASC
+      LIMIT 1
+      `,
+      [userId]
+    );
+
+    context.ordersSummary = {
+      totalOrders: normalizarNumero(countRow?.total),
+      recentOrders: recentOrderRows.map((pedido) => ({
+        number: normalizarTexto(pedido.numero_pedido),
+        deliveryDate: pedido.fecha_entrega_programada
+          ? new Date(pedido.fecha_entrega_programada).toISOString()
+          : '',
+        total: normalizarNumero(pedido.total),
+        subscription: Boolean(pedido.es_suscripcion)
+      }))
+    };
+
+    context.nextScheduledOrder = upcomingOrderRows[0]
+      ? {
+          number: normalizarTexto(upcomingOrderRows[0].numero_pedido),
+          deliveryDate: upcomingOrderRows[0].fecha_entrega_programada
+            ? new Date(upcomingOrderRows[0].fecha_entrega_programada).toISOString()
+            : '',
+          total: normalizarNumero(upcomingOrderRows[0].total),
+          subscription: Boolean(upcomingOrderRows[0].es_suscripcion)
+        }
+      : null;
 
     if (lastOrderRow) {
       const [orderItemsRows] = await pool.query(

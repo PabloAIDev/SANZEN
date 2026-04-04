@@ -24,7 +24,18 @@
     </ion-header>
 
     <ion-content class="assistant-content">
-      <div class="assistant-screen-tag">Pantalla actual: {{ pantallaActual }}</div>
+      <div class="assistant-status-row">
+        <div class="assistant-screen-tag">Pantalla actual: {{ pantallaActual }}</div>
+
+        @if (obtenerEtiquetaOrigen()) {
+          <div
+            class="assistant-source-tag"
+            [class.assistant-source-tag-openai]="ultimoOrigenRespuesta === 'openai'"
+            [class.assistant-source-tag-fallback]="ultimoOrigenRespuesta === 'fallback'">
+            {{ obtenerEtiquetaOrigen() }}
+          </div>
+        }
+      </div>
 
       <div class="assistant-suggestions">
         @for (sugerencia of obtenerSugerenciasRapidas(); track sugerencia) {

@@ -75,6 +75,33 @@
   font-weight: 700;
 }
 
+.assistant-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.assistant-source-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.assistant-source-tag-openai {
+  background: rgba(47, 111, 95, 0.16);
+  color: #244d44;
+}
+
+.assistant-source-tag-fallback {
+  background: rgba(211, 106, 46, 0.14);
+  color: #8a4318;
+}
+
 .assistant-suggestions {
   display: flex;
   flex-wrap: wrap;
