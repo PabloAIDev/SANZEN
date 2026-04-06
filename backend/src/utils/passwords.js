@@ -11,15 +11,11 @@ async function hashPassword(password) {
 }
 
 async function verifyPassword(password, storedValue) {
-  if (!storedValue) {
+  if (!storedValue || !esHashBcrypt(storedValue)) {
     return false;
   }
 
-  if (esHashBcrypt(storedValue)) {
-    return bcrypt.compare(String(password ?? ''), storedValue);
-  }
-
-  return String(password ?? '') === String(storedValue);
+  return bcrypt.compare(String(password ?? ''), storedValue);
 }
 
 module.exports = {

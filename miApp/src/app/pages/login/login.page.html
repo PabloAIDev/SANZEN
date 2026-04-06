@@ -13,7 +13,7 @@
   <ion-card>
     <ion-card-content>
       <h1>Inicia sesión</h1>
-      <p>Selecciona un usuario real de la base de datos o escribe sus credenciales.</p>
+      <p>Escribe tus credenciales para entrar en SANZEN.</p>
 
       <ion-item>
         <ion-label position="stacked">Email</ion-label>
@@ -82,31 +82,4 @@
     </ion-card>
   }
 
-  @if (usuariosDisponibles.length > 0) {
-    <ion-card>
-      <ion-card-content>
-        <h2>Usuarios disponibles</h2>
-        <ion-list lines="none">
-          @for (usuario of usuariosDisponibles; track usuario.id) {
-            <ion-item button (click)="completarUsuario(usuario)">
-              <ion-label>
-                <h3>{{ usuario.nombre }}</h3>
-                <p>{{ usuario.email }}</p>
-                @if (usuario.email === 'ana@sanzen.local') {
-                  <p>Password demo: ana12345</p>
-                }
-                @if (usuario.email === 'marta@sanzen.local') {
-                  <p>Password demo: marta12345</p>
-                }
-                @if (usuario.email === 'jose@gmail.com') {
-                  <p>Password actual del usuario Jose</p>
-                }
-              </ion-label>
-            </ion-item>
-          }
-        </ion-list>
-        <ion-note color="medium">Pulsa un usuario para autocompletar su email.</ion-note>
-      </ion-card-content>
-    </ion-card>
-  }
 </ion-content>

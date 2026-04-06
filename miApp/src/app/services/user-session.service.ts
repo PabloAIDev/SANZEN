@@ -20,10 +20,6 @@ export class UserSessionService {
     return Promise.resolve();
   }
 
-  async obtenerUsuarios(): Promise<SessionUser[]> {
-    return firstValueFrom(this.http.get<SessionUser[]>(`${this.apiUrl}/users`));
-  }
-
   async iniciarSesion(email: string, password: string): Promise<SessionUser> {
     const usuario = await firstValueFrom(
       this.http.post<SessionUser>(`${this.apiUrl}/login`, {

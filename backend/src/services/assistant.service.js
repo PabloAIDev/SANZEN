@@ -3,10 +3,165 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const MAX_HISTORY_MESSAGES = 6;
 const MAX_HISTORY_TEXT_LENGTH = 400;
 const ALLOWED_TARGETS = ['/inicio', '/menu', '/resumen', '/pago', '/perfil', '/suscripcion', '/mis-pedidos', '/como-funciona', '/login'];
+const NUTRIENT_QUERY_DEFINITIONS = [
+  { field: 'fiberG', label: 'fibra', keywords: ['fibra'], defaultDirection: 'high' },
+  { field: 'proteinG', label: 'proteina', keywords: ['proteina', 'proteinas'], defaultDirection: 'high' },
+  { field: 'fatG', label: 'grasas', keywords: ['grasa', 'grasas'], defaultDirection: 'low' },
+  { field: 'carbohydratesG', label: 'carbohidratos', keywords: ['carbohidrato', 'carbohidratos', 'hidrato', 'hidratos'], defaultDirection: 'low' }
+];
+const HEALTH_QUERY_DEFINITIONS = [
+  {
+    key: 'estreñimiento',
+    pattern: /\bestrenim|\bestrinim|\btransito(?:\s+intestinal|\s+lento)?\b/,
+    keywords: ['estrenim', 'estrinim', 'transito intestinal', 'transito lento', 'transito'],
+    nutrientField: 'fiberG',
+    ranking: 'highFiber',
+    guidance: 'El usuario busca platos que puedan encajar mejor con molestias de estreñimiento o tránsito lento. Responde con cautela, sin consejo médico fuerte, priorizando platos compatibles con más fibra y buena ligereza.'
+  },
+  {
+    key: 'colesterol',
+    pattern: /\bcolesterol\b|\bcolesterol alto\b/,
+    keywords: ['colesterol'],
+    ranking: 'lowFatHighFiber',
+    guidance: 'El usuario pregunta por colesterol. Puedes orientar de forma general con los datos disponibles, priorizando grasa total mas baja y fibra mas alta, pero dejando claro que SANZEN no dispone de datos de grasas saturadas ni colesterol dietetico.',
+    dataLimitations: ['No dispones de grasas saturadas.', 'No dispones de colesterol dietetico.']
+  },
+  {
+    key: 'tension-alta',
+    pattern: /\btension alta\b|\bhipertension\b|\bpresion alta\b/,
+    keywords: ['tension alta', 'hipertension', 'presion alta'],
+    ranking: 'general',
+    guidance: 'El usuario pregunta por tension alta. Debes responder con prudencia y aclarar que SANZEN no dispone de datos de sodio o sal, asi que no puedes dar una recomendacion fiable para ese criterio medico.',
+    dataLimitations: ['No dispones de sodio ni sal por plato.']
+  },
+  {
+    key: 'gases',
+    pattern: /\bgases\b|\bhinchazon\b|\bdistension\b|\bmeteorismo\b/,
+    keywords: ['gases', 'hinchazon', 'distension', 'meteorismo'],
+    ranking: 'general',
+    guidance: 'El usuario pregunta por gases o hinchazon. Debes responder con prudencia y aclarar que SANZEN no dispone de datos suficientes para una recomendacion digestiva fiable, pero si puedes orientar segun perfil y composicion general.',
+    dataLimitations: ['No dispones de datos digestivos especificos ni de FODMAP.']
+  }
+];
+const GENERIC_HEALTH_PATTERNS = [
+  /\bsalud\b/,
+  /\bbienestar\b/,
+  /\bmedic/,
+  /\benfermedad/,
+  /\bpatolog/,
+  /\btrastorn/,
+  /\bdiagnost/,
+  /\bdolencia/,
+  /\bsintoma/,
+  /\bmolestia/,
+  /\bdolor/,
+  /\bdigesti/,
+  /\bestomag/,
+  /\bintestin/,
+  /\breflujo\b/,
+  /\bgastrit/,
+  /\bacidez\b/,
+  /\bcolesterol/,
+  /\btension/,
+  /\bhipertension/,
+  /\bdiabetes/,
+  /\banemia\b/,
+  /\basma\b/,
+  /\binsomnio\b/,
+  /\bansiedad\b/,
+  /\bestres\b/,
+  /\bmigra/,
+  /\bgases/,
+  /\bhinchazon/,
+  /\binflamacion/
+];
+const GENERIC_HEALTH_QUERY = {
+  key: 'salud-general',
+  ranking: 'general',
+  guidance: 'El usuario hace una consulta general de salud o bienestar. Responde con prudencia, sin consejo medico fuerte, usando solo el perfil y la composicion nutricional general disponible en SANZEN.',
+  dataLimitations: ['No dispones de datos clinicos ni diagnosticos.', 'Solo conoces composicion nutricional general, alergenos y preferencias del usuario.']
+};
+const ALLERGEN_ALIASES = {
+  gluten: 'gluten',
+  lacteos: 'lacteos',
+  lacteo: 'lacteos',
+  lactosa: 'lacteos',
+  soja: 'soja',
+  huevo: 'huevo',
+  huevos: 'huevo',
+  pescado: 'pescado',
+  crustaceos: 'crustaceos',
+  crustaceo: 'crustaceos',
+  sesamo: 'sesamo',
+  legumbres: 'legumbres',
+  legumbre: 'legumbres'
+};
+const VEGETARIAN_DISALLOWED_TERMS = [
+  'pollo',
+  'cerdo',
+  'ternera',
+  'carne',
+  'gamba',
+  'gambas',
+  'pescado',
+  'atun',
+  'sardina',
+  'salmon',
+  'marisco',
+  'crustaceo',
+  'crustaceos',
+  'panceta',
+  'bacon',
+  'chuleta'
+];
 
 async function generateAssistantResponse({ message, context, history = [] }) {
   const sanitizedHistory = normalizeHistory(history);
   const normalizedMessage = normalizarMensaje(resolveMessageWithHistory(message, sanitizedHistory));
+  const matchedHealthQuery = detectHealthQuery(normalizedMessage);
+  if (matchedHealthQuery) {
+    const candidates = getHealthSupportCandidates(context, matchedHealthQuery);
+
+    if (!candidates.length) {
+      return buildResponse(
+        'No veo platos claramente compatibles con tu perfil para esa consulta. Puedes revisar tu perfil alimentario o preguntarme por alternativas mas concretas del menu.',
+        [{ type: 'navigate', target: '/menu', label: 'Ver menu' }, { type: 'navigate', target: '/perfil', label: 'Ver perfil' }],
+        'fallback'
+      );
+    }
+
+    const fallbackHealthResponse = buildResponse(
+      buildHealthSupportFallbackMessage(matchedHealthQuery, candidates, context.profile),
+      [{ type: 'navigate', target: '/menu', label: 'Ver menu' }],
+      'fallback'
+    );
+
+    if (!process.env.OPENAI_API_KEY) {
+      return fallbackHealthResponse;
+    }
+
+    try {
+      const content = await requestOpenAi({
+        message,
+        context,
+        history: sanitizedHistory,
+        extraContext: buildHealthOpenAiExtraContext(matchedHealthQuery, candidates)
+      });
+
+      if (typeof content === 'string' && content.trim() !== '') {
+        return sanitizeAssistantResponse(parseAssistantJson(content), context, 'openai');
+      }
+
+      return fallbackHealthResponse;
+    } catch (error) {
+      console.error('Error al resolver consulta de salud con OpenAI:', error);
+      return fallbackHealthResponse;
+    }
+  }
+  const catalogResponse = buildStructuredCatalogResponse(normalizedMessage, context, 'fallback');
+  if (catalogResponse) {
+    return catalogResponse;
+  }
   const ruleResponse = buildRuleBasedResponse(normalizedMessage, context, 'rules');
   if (ruleResponse) {
     return ruleResponse;
@@ -16,28 +171,13 @@ async function generateAssistantResponse({ message, context, history = [] }) {
   }
 
   try {
-    const response = await fetch(OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        temperature: 0.35,
-        response_format: { type: 'json_object' },
-        messages: buildOpenAiMessages({ message, context, history: sanitizedHistory })
-      })
+    const content = await requestOpenAi({
+      message,
+      context,
+      history: sanitizedHistory,
+      extraContext: buildGenericOpenAiExtraContext(normalizedMessage, context)
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Error de OpenAI:', response.status, errorText);
-      return buildFallbackResponse(message, context, sanitizedHistory, 'fallback');
-    }
-
-    const data = await response.json();
-    const content = data?.choices?.[0]?.message?.content;
     if (typeof content !== 'string' || content.trim() === '') {
       return buildFallbackResponse(message, context, sanitizedHistory, 'fallback');
     }
@@ -49,10 +189,35 @@ async function generateAssistantResponse({ message, context, history = [] }) {
   }
 }
 
-function buildOpenAiMessages({ message, context, history }) {
+async function requestOpenAi({ message, context, history, extraContext = null }) {
+  const response = await fetch(OPENAI_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: OPENAI_MODEL,
+      temperature: 0.35,
+      response_format: { type: 'json_object' },
+      messages: buildOpenAiMessages({ message, context, history, extraContext })
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Error de OpenAI:', response.status, errorText);
+    return null;
+  }
+
+  const data = await response.json();
+  return data?.choices?.[0]?.message?.content ?? null;
+}
+
+function buildOpenAiMessages({ message, context, history, extraContext = null }) {
   return [
     { role: 'system', content: buildSystemPrompt() },
-    { role: 'user', content: JSON.stringify({ context: buildModelContext(context) }) },
+    { role: 'user', content: JSON.stringify({ context: buildModelContext(context, extraContext) }) },
     ...history.map((entry) => ({ role: entry.role, content: entry.text })),
     { role: 'user', content: message.trim() }
   ];
@@ -67,7 +232,12 @@ function buildSystemPrompt() {
     'Solo puedes sugerir navegacion cuando realmente ayude al usuario.',
     'Nunca recomiendes platos cuyos alergenos sean incompatibles con el perfil del usuario.',
     'Si existe compatibleCatalog o recommendedCatalog, solo puedes recomendar platos contenidos en esas listas.',
+    'Si existe candidateCatalog, cita explicitamente entre 2 y 4 platos de esa lista por su nombre y explica brevemente por que encajan.',
     'Si el usuario pregunta por el funcionamiento de la app, responde sobre SANZEN y no sobre nutricion en general.',
+    'Si el usuario plantea una molestia digestiva o una necesidad de bienestar, responde con prudencia, sin consejo medico fuerte, y recomienda consultar a un profesional si la situacion va mas alla de una orientacion general.',
+    'Si en healthDataLimitations se indica que faltan datos nutricionales relevantes, debes decirlo expresamente y no asumir informacion que no existe.',
+    'Cuando una consulta de salud no pueda resolverse con fiabilidad, debes decirlo claramente y cerrar ofreciendo ayuda alternativa concreta: recomendar platos compatibles segun el perfil del usuario o explicar el uso de la app.',
+    'Si no tienes base suficiente para una recomendacion fiable, dilo claramente y ofrece ayuda alternativa: recomendar platos segun perfil o explicar el uso de la app.',
     'Reglas de SANZEN:',
     '- Pedido individual: minimo de 20 EUR.',
     '- Suscripcion semanal: minimo de 5 platos.',
@@ -79,7 +249,7 @@ function buildSystemPrompt() {
   ].join('\n');
 }
 
-function buildModelContext(context) {
+function buildModelContext(context, extraContext = null) {
   const compatibleCatalog = getCompatibleCatalog(context);
   const recommendedCatalog = getRecommendedCatalog(context);
   return {
@@ -130,7 +300,8 @@ function buildModelContext(context) {
     compatibleCatalog: compatibleCatalog.map(toCatalogSummary),
     recommendedCatalog: recommendedCatalog.map(toCatalogSummary),
     catalog: context.catalog.map(toCatalogSummary),
-    appRules: context.appRules
+    appRules: context.appRules,
+    ...(extraContext && typeof extraContext === 'object' ? extraContext : {})
   };
 }
 
@@ -138,9 +309,14 @@ function toCatalogSummary(item) {
   return {
     id: item.id,
     name: item.name,
+    description: item.description,
     category: item.category,
     price: item.price,
     calories: item.calories,
+    proteinG: item.proteinG,
+    carbohydratesG: item.carbohydratesG,
+    fatG: item.fatG,
+    fiberG: item.fiberG,
     healthScore: item.healthScore,
     allergens: item.allergens
   };
@@ -167,17 +343,53 @@ function buildRuleBasedResponse(message, context, source) {
   if (isBlockingQuestion(message) || isMissingToContinueQuestion(message)) return buildResponse(explainBlocking(context), blockingActions(context), source);
   if (isCartSummaryQuestion(message)) return buildResponse(describeCart(context), [{ type: 'navigate', target: '/resumen', label: 'Ver carrito' }], source);
   if (isOrdersSummaryQuestion(message)) return buildResponse(describeHistory(context), lastOrderActions(context), source);
-  if (isRecommendationQuestion(message)) return buildResponse(recommendDishes(context), [{ type: 'navigate', target: '/menu', label: 'Ver menu' }], source);
   return null;
 }
 
 function buildFallbackResponse(message, context, history, source) {
   const normalizedMessage = normalizarMensaje(resolveMessageWithHistory(message, history));
-  return buildRuleBasedResponse(normalizedMessage, context, source) || { message: defaultMessage(context), actions: defaultActions(context), source };
+  const safeRecommendationFallback = buildSafeRecommendationFallback(normalizedMessage, context, source);
+  return safeRecommendationFallback
+    || buildRuleBasedResponse(normalizedMessage, context, source)
+    || { message: defaultMessage(context), actions: defaultActions(context), source };
 }
 
 function buildResponse(message, actions, source) {
   return { message, actions: actions.slice(0, 2), source };
+}
+
+function buildGenericOpenAiExtraContext(message, context) {
+  const healthQuery = detectHealthQuery(message);
+
+  if (!healthQuery) {
+    if (!isOpenRecommendationQuestion(message)) {
+      return null;
+    }
+
+    const candidateCatalog = getOpenRecommendationCandidates(message, context);
+    return candidateCatalog.length
+      ? {
+          recommendationQuery: {
+            dinner: detectSpecialCatalogQuery(message).dinner,
+            nutrient: detectNutrientQuery(message)?.label ?? null
+          },
+          candidateCatalog: candidateCatalog.map(toCatalogSummary)
+        }
+      : null;
+  }
+
+  return buildHealthOpenAiExtraContext(healthQuery, getHealthSupportCandidates(context, healthQuery));
+}
+
+function buildHealthOpenAiExtraContext(healthQuery, candidates) {
+  return {
+    healthQuery: {
+      topic: healthQuery.key,
+      guidance: healthQuery.guidance
+    },
+    healthDataLimitations: Array.isArray(healthQuery.dataLimitations) ? healthQuery.dataLimitations : [],
+    candidateCatalog: candidates.map(toCatalogSummary)
+  };
 }
 
 function parseAssistantJson(content) {
@@ -249,7 +461,14 @@ function isPaymentStatusQuestion(message) { return message.includes('mi perfil e
 function isMissingFieldsQuestion(message) { return message.includes('que dato me falta') || message.includes('que me falta para completar el perfil') || message.includes('que me falta del perfil'); }
 function isAllergyQuestion(message) { return message.includes('alergenos tengo') || message.includes('alergenos tengo seleccionados') || message.includes('que alergenos tengo'); }
 function isObjectiveQuestion(message) { return message.includes('objetivo nutricional') || message.includes('que objetivo tengo') || message.includes('objetivo tengo ahora mismo'); }
-function isRecommendationQuestion(message) { return message.includes('recomi') || message.includes('platos encajan') || message.includes('plato encaja') || message.includes('encajan con mi perfil') || message.includes('que plato'); }
+function isOpenRecommendationQuestion(message) {
+  return message.includes('recomi')
+    || message.includes('aconsej')
+    || message.includes('sugier')
+    || message.includes('platos encajan')
+    || message.includes('plato encaja')
+    || message.includes('encajan con mi perfil');
+}
 function isCartSummaryQuestion(message) { return message.includes('resume mi carrito') || message.includes('resume mi pedido'); }
 function isOrdersSummaryQuestion(message) { return message.includes('resume mis pedidos') || message.includes('resumeme mis pedidos') || message.includes('resumen de mis pedidos'); }
 function isLastOrderTypeQuestion(message) { return message.includes('ultimo pedido fue') && (message.includes('suscripcion') || message.includes('individual')); }
@@ -398,6 +617,499 @@ function recommendDishes(context) {
   return `Segun tu perfil actual${restrictions}, te recomendaria ${names}.`;
 }
 
+async function buildHealthSupportResponse({ message, normalizedMessage, context, history, healthQuery = null }) {
+  const resolvedHealthQuery = healthQuery ?? detectHealthQuery(normalizedMessage);
+
+  if (!resolvedHealthQuery) {
+    return null;
+  }
+
+  const candidates = getHealthSupportCandidates(context, resolvedHealthQuery);
+
+  if (!candidates.length) {
+    return buildResponse(
+      'No veo platos claramente compatibles con tu perfil para esa consulta. Puedes revisar tu perfil alimentario o preguntarme por alternativas mas concretas del menu.',
+      [{ type: 'navigate', target: '/menu', label: 'Ver menu' }, { type: 'navigate', target: '/perfil', label: 'Ver perfil' }],
+      'fallback'
+    );
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return buildResponse(
+      buildHealthSupportFallbackMessage(resolvedHealthQuery, candidates, context.profile),
+      [{ type: 'navigate', target: '/menu', label: 'Ver menu' }],
+      'fallback'
+    );
+  }
+
+  try {
+    const content = await requestOpenAi({
+      message,
+      context,
+      history,
+      extraContext: buildHealthOpenAiExtraContext(resolvedHealthQuery, candidates)
+    });
+
+    if (typeof content !== 'string' || content.trim() === '') {
+      return buildResponse(
+        buildHealthSupportFallbackMessage(resolvedHealthQuery, candidates, context.profile),
+        [{ type: 'navigate', target: '/menu', label: 'Ver menu' }],
+        'fallback'
+      );
+    }
+
+    return sanitizeAssistantResponse(parseAssistantJson(content), context, 'openai');
+  } catch (error) {
+    console.error('Error al resolver consulta de salud con OpenAI:', error);
+    return buildResponse(
+      buildHealthSupportFallbackMessage(resolvedHealthQuery, candidates, context.profile),
+      [{ type: 'navigate', target: '/menu', label: 'Ver menu' }],
+      'fallback'
+    );
+  }
+}
+
+function detectHealthQuery(message) {
+  if (hasDigestiveFiberClue(message)) {
+    return HEALTH_QUERY_DEFINITIONS[0];
+  }
+
+  const matchedDefinition = HEALTH_QUERY_DEFINITIONS.find((definition) => definition.pattern?.test(message) || definition.keywords.some((keyword) => message.includes(keyword)));
+  if (matchedDefinition) {
+    return matchedDefinition;
+  }
+
+  return GENERIC_HEALTH_PATTERNS.some((pattern) => pattern.test(message)) ? GENERIC_HEALTH_QUERY : null;
+}
+
+function hasDigestiveFiberClue(message) {
+  return String(message ?? '').includes('estre') || String(message ?? '').includes('transit');
+}
+
+function getHealthSupportCandidates(context, healthQuery) {
+  const compatibleCatalog = getCompatibleCatalog(context);
+  if (!compatibleCatalog.length) {
+    return [];
+  }
+
+  const ranking = healthQuery?.ranking ?? (healthQuery?.nutrientField ? 'highNutrient' : 'general');
+
+  return [...compatibleCatalog]
+    .sort((left, right) => compareHealthSupportDishes(left, right, context.profile, healthQuery, ranking))
+    .slice(0, 4);
+}
+
+function buildHealthSupportFallbackMessage(healthQuery, candidates, profile) {
+  const dishes = candidates.map((dish) => `${dish.name} (${healthQuery.key === 'estreñimiento' ? `fibra ${Number(dish.fiberG ?? 0).toFixed(1)} g, ` : ''}${dish.price.toFixed(2)} EUR)`).join(', ');
+  const profileText = buildProfileSupportText(profile);
+  if (healthQuery.key === 'estreñimiento') {
+    return `Sin sustituir una indicacion medica, para una consulta como ${healthQuery.key} te sugeriria priorizar platos compatibles con mas fibra y buena ligereza${profileText}. En el menu te encajan especialmente ${dishes}. Si el problema persiste, conviene consultarlo con un profesional.`;
+  }
+
+  if (Array.isArray(healthQuery.dataLimitations) && healthQuery.dataLimitations.length) {
+    return `No tengo una base suficientemente fiable para responder con precision a esa consulta medica usando solo los datos de SANZEN${profileText}. ${healthQuery.dataLimitations.join(' ')} Si quieres, puedo orientarte de forma general con platos compatibles como ${dishes}, o ayudarte con recomendaciones segun tu perfil y el uso de la app.`;
+  }
+
+  return `Sin sustituir una indicacion medica, estas opciones del menu encajan mejor con esa consulta${profileText}: ${dishes}.`;
+}
+
+function compareHealthSupportDishes(left, right, profile, healthQuery, ranking) {
+  if (ranking === 'highFiber') {
+    const fiberDelta = Number(right.fiberG ?? 0) - Number(left.fiberG ?? 0);
+    if (fiberDelta !== 0) {
+      return fiberDelta;
+    }
+  }
+
+  if (ranking === 'lowFatHighFiber') {
+    const fatDelta = Number(left.fatG ?? 0) - Number(right.fatG ?? 0);
+    if (fatDelta !== 0) {
+      return fatDelta;
+    }
+
+    const fiberDelta = Number(right.fiberG ?? 0) - Number(left.fiberG ?? 0);
+    if (fiberDelta !== 0) {
+      return fiberDelta;
+    }
+  }
+
+  if (ranking === 'highNutrient' && healthQuery?.nutrientField) {
+    const nutrientDelta = Number(right[healthQuery.nutrientField] ?? 0) - Number(left[healthQuery.nutrientField] ?? 0);
+    if (nutrientDelta !== 0) {
+      return nutrientDelta;
+    }
+  }
+
+  return scoreDish(right, profile) - scoreDish(left, profile);
+}
+
+function buildSafeRecommendationFallback(message, context, source) {
+  if (!detectHealthQuery(message) && !isOpenRecommendationQuestion(message)) {
+    return null;
+  }
+
+  return buildResponse(
+    'No tengo una respuesta fiable para esa consulta concreta en este momento. Si quieres, puedo ayudarte a recomendar platos segun tu perfil, alergenos y objetivo nutricional, o explicarte como funciona la app.',
+    [{ type: 'navigate', target: '/menu', label: 'Ver menu' }, { type: 'navigate', target: '/como-funciona', label: 'Como funciona' }],
+    source
+  );
+}
+
+function buildStructuredCatalogResponse(message, context, source) {
+  const query = parseStructuredCatalogQuery(message);
+
+  if (!query) {
+    return null;
+  }
+
+  const allCatalogMatches = context.catalog.filter((dish) => matchesStructuredCatalogQuery(dish, query));
+  const compatibleCatalogMatches = getCompatibleCatalog(context).filter((dish) => matchesStructuredCatalogQuery(dish, query));
+
+  if (!allCatalogMatches.length) {
+    return buildResponse(
+      `No encuentro platos del menu actual ${describeCatalogQuery(query)}.`,
+      [{ type: 'navigate', target: '/menu', label: 'Ver menu' }],
+      source
+    );
+  }
+
+  if (!compatibleCatalogMatches.length) {
+    return buildResponse(
+      `He encontrado platos del menu ${describeCatalogQuery(query)}, pero ninguno es compatible con tu perfil actual y tus alergenos seleccionados.`,
+      [{ type: 'navigate', target: '/perfil', label: 'Ver perfil' }, { type: 'navigate', target: '/menu', label: 'Ver menu' }],
+      source
+    );
+  }
+
+  const rankedMatches = orderStructuredCatalogMatches(compatibleCatalogMatches, query, context.profile).slice(0, 3);
+  return buildResponse(
+    describeStructuredCatalogResult(query, rankedMatches, context.profile),
+    [{ type: 'navigate', target: '/menu', label: 'Ver menu' }],
+    source
+  );
+}
+
+function parseStructuredCatalogQuery(message) {
+  if (isOpenRecommendationQuestion(message) || detectHealthQuery(message)) {
+    return null;
+  }
+
+  const nutrientQuery = detectNutrientQuery(message);
+  const specialQuery = detectSpecialCatalogQuery(message);
+  const includeTerms = extractCatalogTerms(message, nutrientQuery, false);
+  const excludeTerms = extractCatalogTerms(message, nutrientQuery, true);
+
+  if (!nutrientQuery && includeTerms.length === 0 && excludeTerms.length === 0 && !specialQuery.vegetarian && !specialQuery.dinner) {
+    return null;
+  }
+
+  if (!mentionsCatalogScope(message) && !nutrientQuery && includeTerms.length === 0 && excludeTerms.length === 0 && !specialQuery.vegetarian && !specialQuery.dinner) {
+    return null;
+  }
+
+  return {
+    nutrientQuery,
+    includeTerms,
+    excludeTerms,
+    vegetarian: specialQuery.vegetarian,
+    dinner: specialQuery.dinner
+  };
+}
+
+function detectSpecialCatalogQuery(message) {
+  return {
+    vegetarian: /\bvegetarian[oa]s?\b|\bvegano?s?\b/.test(message),
+    dinner: /\bcenar\b|\bcena\b/.test(message)
+  };
+}
+
+function getOpenRecommendationCandidates(message, context) {
+  const nutrientQuery = detectNutrientQuery(message);
+  const specialQuery = detectSpecialCatalogQuery(message);
+  const includeTerms = extractCatalogTerms(message, nutrientQuery, false);
+  const excludeTerms = extractCatalogTerms(message, nutrientQuery, true);
+  const query = {
+    nutrientQuery,
+    includeTerms,
+    excludeTerms,
+    vegetarian: specialQuery.vegetarian,
+    dinner: specialQuery.dinner
+  };
+
+  let candidates = getCompatibleCatalog(context);
+
+  if (query.vegetarian || query.dinner || query.includeTerms.length || query.excludeTerms.length || query.nutrientQuery) {
+    candidates = candidates.filter((dish) => matchesStructuredCatalogQuery(dish, query));
+  }
+
+  if (!candidates.length) {
+    candidates = getCompatibleCatalog(context);
+  }
+
+  return orderStructuredCatalogMatches(candidates, query, context.profile).slice(0, 4);
+}
+
+function detectNutrientQuery(message) {
+  for (const definition of NUTRIENT_QUERY_DEFINITIONS) {
+    if (definition.keywords.some((keyword) => message.includes(keyword))) {
+      return {
+        field: definition.field,
+        label: definition.label,
+        direction: detectNutrientDirection(message, definition.defaultDirection)
+      };
+    }
+  }
+
+  return null;
+}
+
+function detectNutrientDirection(message, fallbackDirection) {
+  if (/(bajo|baja|bajos|bajas|menos|poco|poca)\s+(contenido\s+en\s+)?(fibra|proteina|proteinas|grasa|grasas|carbohidrato|carbohidratos|hidrato|hidratos)/.test(message)) {
+    return 'low';
+  }
+
+  if (/(alto|alta|altos|altas|rico|rica|ricos|ricas|mas|mucho|mucha)\s+(contenido\s+en\s+)?(fibra|proteina|proteinas|grasa|grasas|carbohidrato|carbohidratos|hidrato|hidratos)/.test(message)) {
+    return 'high';
+  }
+
+  return fallbackDirection;
+}
+
+function extractCatalogTerms(message, nutrientQuery, exclude) {
+  const sanitizedMessage = nutrientQuery ? stripNutrientFragments(message) : message;
+  const terms = [];
+  const patterns = exclude
+    ? [/\bsin\s+([a-z0-9áéíóúñü,\s-]+)/g]
+    : [
+        /\b(?:lleven|lleva|tengan|tenga|contengan|contenga|incluyan|incluya)\s+([a-z0-9áéíóúñü,\s-]+)/g,
+        /\b(?:platos?|menu)\s+con\s+([a-z0-9áéíóúñü,\s-]+)/g,
+        /\bcon\s+([a-z0-9áéíóúñü-]+)\b/g
+      ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(sanitizedMessage)) !== null) {
+      for (const term of splitCatalogTerms(match[1])) {
+        if (term && !terms.includes(term)) {
+          terms.push(term);
+        }
+      }
+    }
+  }
+
+  return terms;
+}
+
+function stripNutrientFragments(message) {
+  return message
+    .replace(/\b(?:alto|alta|altos|altas|bajo|baja|bajos|bajas|rico|rica|ricos|ricas|mucho|mucha|mas|menos|poco|poca)\s+(?:contenido\s+en\s+)?(?:fibra|proteina|proteinas|grasa|grasas|carbohidrato|carbohidratos|hidrato|hidratos)\b/g, ' ')
+    .replace(/\b(?:fibra|proteina|proteinas|grasa|grasas|carbohidrato|carbohidratos|hidrato|hidratos)\b/g, ' ');
+}
+
+function splitCatalogTerms(fragment) {
+  return String(fragment ?? '')
+    .split(/,| y /)
+    .map((term) => normalizarMensaje(term))
+    .map((term) => term.replace(/^(de|del|la|las|el|los)\s+/, '').trim())
+    .map((term) => term.replace(/\bpara\s+(cenar|cena)\b/g, '').trim())
+    .map((term) => term.replace(/\b(menu|platos?|que|lleven|lleva|tengan|tenga|contengan|contenga|incluyan|incluya)\b/g, '').trim())
+    .map((term) => term.replace(/\bvegetarian[oa]s?\b|\bvegano?s?\b/g, '').trim())
+    .filter((term) => term.length >= 2 && !isPureQuestionBoilerplate(term));
+}
+
+function isPureQuestionBoilerplate(term) {
+  return ['hay', 'haya', 'dime', 'quiero', 'busco', 'actual'].includes(term);
+}
+
+function mentionsCatalogScope(message) {
+  return message.includes('menu') || message.includes('plato') || message.includes('platos') || message.includes('lleven') || message.includes('tengan') || message.includes('sin ') || message.includes('cena') || message.includes('cenar') || message.includes('vegetar');
+}
+
+function matchesStructuredCatalogQuery(dish, query) {
+  if (query.vegetarian && !isVegetarianDish(dish)) {
+    return false;
+  }
+
+  if (query.includeTerms.some((term) => !dishMatchesCatalogTerm(dish, term, false))) {
+    return false;
+  }
+
+  if (query.excludeTerms.some((term) => dishMatchesCatalogTerm(dish, term, true))) {
+    return false;
+  }
+
+  return true;
+}
+
+function dishMatchesCatalogTerm(dish, term, negativeSearch) {
+  const normalizedTerm = normalizarMensaje(term);
+  const allergenAlias = ALLERGEN_ALIASES[normalizedTerm];
+  const allergens = new Set((dish.allergens ?? []).map(normalizeComparisonKey));
+
+  if (allergenAlias) {
+    return allergens.has(allergenAlias);
+  }
+
+  const searchableText = buildDishSearchText(dish);
+  return negativeSearch ? searchableText.includes(normalizedTerm) : searchableText.includes(normalizedTerm);
+}
+
+function buildDishSearchText(dish) {
+  return normalizarMensaje([
+    dish.name,
+    dish.description,
+    ...(dish.allergens ?? [])
+  ].filter(Boolean).join(' '));
+}
+
+function orderStructuredCatalogMatches(dishes, query, profile) {
+  return [...dishes].sort((left, right) => {
+    if (query.dinner) {
+      const dinnerDelta = Number(isDinnerFriendlyDish(right)) - Number(isDinnerFriendlyDish(left));
+      if (dinnerDelta !== 0) {
+        return dinnerDelta;
+      }
+    }
+
+    if (query.nutrientQuery) {
+      const field = query.nutrientQuery.field;
+      const leftValue = Number(left[field] ?? 0);
+      const rightValue = Number(right[field] ?? 0);
+      const nutrientDelta = query.nutrientQuery.direction === 'low'
+        ? leftValue - rightValue
+        : rightValue - leftValue;
+
+      if (nutrientDelta !== 0) {
+        return nutrientDelta;
+      }
+    }
+
+    return scoreDish(right, profile) - scoreDish(left, profile);
+  });
+}
+
+function describeStructuredCatalogResult(query, dishes, profile) {
+  const intro = buildStructuredCatalogIntro(query, profile);
+  const details = dishes.map((dish) => formatStructuredDish(dish, query)).join(', ');
+  return `${intro} ${details}.`;
+}
+
+function buildStructuredCatalogIntro(query, profile) {
+  const profileParts = [];
+
+  if ((profile.allergies ?? []).length) {
+    profileParts.push('evitando alergenos incompatibles');
+  }
+
+  if (profile.objective) {
+    profileParts.push(`alineados con tu objetivo de ${describeObjectiveValue(profile.objective)}`);
+  }
+
+  if ((profile.compositionPreferences ?? []).length) {
+    profileParts.push(`priorizando ${describePreferences(profile.compositionPreferences)}`);
+  }
+
+  const profileText = profileParts.length ? ` y teniendo en cuenta tu perfil (${profileParts.join(', ')})` : '';
+
+  if (query.vegetarian && query.dinner) {
+    return `Los platos vegetarianos del menu que mejor encajan para cenar${profileText} son`;
+  }
+
+  if (query.vegetarian) {
+    return `Los platos vegetarianos del menu que mejor encajan contigo${profileText} son`;
+  }
+
+  if (query.dinner && query.nutrientQuery) {
+    const amountText = query.nutrientQuery.direction === 'low' ? `con menos ${query.nutrientQuery.label}` : `con mas ${query.nutrientQuery.label}`;
+    return `Los platos del menu para cenar y ${amountText} que mejor encajan contigo${profileText} son`;
+  }
+
+  if (query.dinner && query.includeTerms.length) {
+    return `Los platos del menu ${describeCatalogTerms(query.includeTerms, false)} que mejor encajan para cenar${profileText} son`;
+  }
+
+  if (query.dinner && query.excludeTerms.length) {
+    return `Los platos del menu ${describeCatalogTerms(query.excludeTerms, true)} que mejor encajan para cenar${profileText} son`;
+  }
+
+  if (query.dinner) {
+    return `Los platos del menu que mejor encajan para cenar${profileText} son`;
+  }
+
+  if (query.nutrientQuery) {
+    const amountText = query.nutrientQuery.direction === 'low' ? `con menos ${query.nutrientQuery.label}` : `con mas ${query.nutrientQuery.label}`;
+    if (query.includeTerms.length) {
+      return `Los platos del menu ${describeCatalogTerms(query.includeTerms, false)} y ${amountText} que mejor encajan contigo${profileText} son`;
+    }
+
+    return `Los platos del menu ${amountText} que mejor encajan contigo${profileText} son`;
+  }
+
+  if (query.includeTerms.length) {
+    return `Los platos del menu ${describeCatalogTerms(query.includeTerms, false)} que mejor encajan contigo${profileText} son`;
+  }
+
+  if (query.excludeTerms.length) {
+    return `Los platos del menu ${describeCatalogTerms(query.excludeTerms, true)} que mejor encajan contigo${profileText} son`;
+  }
+
+  return `Estos platos del menu encajan bien contigo${profileText}:`;
+}
+
+function formatStructuredDish(dish, query) {
+  if (query.nutrientQuery) {
+    const nutrientValue = Number(dish[query.nutrientQuery.field] ?? 0).toFixed(1);
+    return `${dish.name} (${query.nutrientQuery.label} ${nutrientValue} g, ${dish.price.toFixed(2)} EUR, HealthScore ${dish.healthScore})`;
+  }
+
+  return `${dish.name} (${dish.price.toFixed(2)} EUR, HealthScore ${dish.healthScore})`;
+}
+
+function describeCatalogQuery(query) {
+  if (query.vegetarian && query.dinner) {
+    return 'vegetarianos y adecuados para cenar';
+  }
+
+  if (query.vegetarian) {
+    return 'vegetarianos';
+  }
+
+  if (query.dinner && query.includeTerms.length) {
+    return `${describeCatalogTerms(query.includeTerms, false)} y adecuados para cenar`;
+  }
+
+  if (query.dinner && query.excludeTerms.length) {
+    return `${describeCatalogTerms(query.excludeTerms, true)} y adecuados para cenar`;
+  }
+
+  if (query.dinner) {
+    return 'adecuados para cenar';
+  }
+
+  if (query.nutrientQuery && query.includeTerms.length) {
+    return `${describeCatalogTerms(query.includeTerms, false)} y ${query.nutrientQuery.direction === 'low' ? 'con menos' : 'con mas'} ${query.nutrientQuery.label}`;
+  }
+
+  if (query.nutrientQuery) {
+    return `${query.nutrientQuery.direction === 'low' ? 'con menos' : 'con mas'} ${query.nutrientQuery.label}`;
+  }
+
+  if (query.includeTerms.length) {
+    return describeCatalogTerms(query.includeTerms, false);
+  }
+
+  if (query.excludeTerms.length) {
+    return describeCatalogTerms(query.excludeTerms, true);
+  }
+
+  return 'que coincidan con tu busqueda';
+}
+
+function describeCatalogTerms(terms, negative) {
+  const text = naturalList(terms);
+  return negative ? `sin ${text}` : `que llevan ${text}`;
+}
+
 function firstOrderActions(context) {
   if (!context.userAuthenticated) return [{ type: 'navigate', target: '/menu', label: 'Ver menu' }, { type: 'navigate', target: '/login', label: 'Iniciar sesion' }];
   return !context.profile.profileCompleteForPayment ? [{ type: 'navigate', target: '/perfil', label: 'Completar perfil' }] : [{ type: 'navigate', target: '/menu', label: 'Ver menu' }];
@@ -503,6 +1215,19 @@ function describePreferences(items) {
 function buildProfileRestrictionsText(profile) {
   return Array.isArray(profile.allergies) && profile.allergies.length ? ` y evitando alergenos incompatibles como ${profile.allergies.join(', ')}` : '';
 }
+function buildProfileSupportText(profile) {
+  const parts = [];
+  if (Array.isArray(profile.allergies) && profile.allergies.length) {
+    parts.push('evitando alergenos incompatibles');
+  }
+  if (profile.objective) {
+    parts.push(`alineado con tu objetivo de ${describeObjectiveValue(profile.objective)}`);
+  }
+  if (Array.isArray(profile.compositionPreferences) && profile.compositionPreferences.length) {
+    parts.push(`priorizando ${describePreferences(profile.compositionPreferences)}`);
+  }
+  return parts.length ? ` y teniendo en cuenta tu perfil (${parts.join(', ')})` : '';
+}
 function naturalList(items) {
   const values = Array.isArray(items) ? items.filter((item) => typeof item === 'string' && item.trim() !== '').map((item) => item.trim()) : [];
   if (!values.length) return 'ningun dato';
@@ -517,6 +1242,17 @@ function isCompatibleWithProfile(dish, profile) {
   const allergies = new Set((profile.allergies ?? []).map(normalizeComparisonKey));
   if (!allergies.size) return true;
   return !dish.allergens.some((allergen) => allergies.has(normalizeComparisonKey(allergen)));
+}
+function isVegetarianDish(dish) {
+  const searchableText = buildDishSearchText(dish);
+  return !VEGETARIAN_DISALLOWED_TERMS.some((term) => searchableText.includes(term));
+}
+function isDinnerFriendlyDish(dish) {
+  const category = normalizeComparisonKey(dish.category);
+  if (category === 'postre') {
+    return false;
+  }
+  return Number(dish.calories ?? 0) <= 420;
 }
 function getCompatibleCatalog(context) {
   return context.catalog.filter((dish) => isCompatibleWithProfile(dish, context.profile));

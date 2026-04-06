@@ -499,6 +499,10 @@ export class PerfilPage implements OnInit {
     return this.profileService.tarjetaPrincipalTieneDatos(this.perfil.tarjetaPrincipal);
   }
 
+  tarjetaGuardadaEnmascaradaVisible(): boolean {
+    return this.profileService.tarjetaPrincipalGuardadaEsUsable(this.perfil.tarjetaPrincipal);
+  }
+
   private tarjetaValida(): boolean {
     return this.profileService.tarjetaPrincipalEsCompleta(this.perfil.tarjetaPrincipal);
   }

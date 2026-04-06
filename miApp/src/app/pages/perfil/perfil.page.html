@@ -260,70 +260,77 @@
           <ion-note color="medium">Se reutilizará automáticamente en la página de pago.</ion-note>
         </div>
 
-        <ion-item lines="inset">
-          <ion-label position="stacked">Nombre del titular</ion-label>
-          <ion-input
-            [(ngModel)]="perfil.tarjetaPrincipal!.nombreTitular"
-            name="nombreTitular"
-            type="text"
-            [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-name')"
-            placeholder="Cómo aparece en la tarjeta"
-            (ionInput)="actualizarNombreTitular($event)"
-          ></ion-input>
-        </ion-item>
-        @if (mostrarErrorCampo('nombreTitular')) {
-          <p class="campo-error">Introduce solo letras en el nombre del titular, tal y como aparece en la tarjeta.</p>
-        }
+        @if (tarjetaGuardadaEnmascaradaVisible()) {
+          <ion-item lines="none">
+            <ion-label position="stacked">Número de tarjeta</ion-label>
+            <ion-note class="tarjeta-enmascarada">{{ perfil.tarjetaPrincipal?.numeroTarjeta }}</ion-note>
+          </ion-item>
+        } @else {
+          <ion-item lines="inset">
+            <ion-label position="stacked">Nombre del titular</ion-label>
+            <ion-input
+              [(ngModel)]="perfil.tarjetaPrincipal!.nombreTitular"
+              name="nombreTitular"
+              type="text"
+              [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-name')"
+              placeholder="Cómo aparece en la tarjeta"
+              (ionInput)="actualizarNombreTitular($event)"
+            ></ion-input>
+          </ion-item>
+          @if (mostrarErrorCampo('nombreTitular')) {
+            <p class="campo-error">Introduce solo letras en el nombre del titular, tal y como aparece en la tarjeta.</p>
+          }
 
-        <ion-item lines="inset">
-          <ion-label position="stacked">Número de tarjeta</ion-label>
-          <ion-input
-            [(ngModel)]="perfil.tarjetaPrincipal!.numeroTarjeta"
-            name="numeroTarjeta"
-            type="text"
-            inputmode="numeric"
-            maxlength="19"
-            [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-number')"
-            placeholder="1234 5678 9012 3456"
-            (ionInput)="actualizarNumeroTarjeta($event)"
-          ></ion-input>
-        </ion-item>
-        @if (mostrarErrorCampo('numeroTarjeta')) {
-          <p class="campo-error">Introduce una tarjeta válida de 16 dígitos.</p>
-        }
+          <ion-item lines="inset">
+            <ion-label position="stacked">Número de tarjeta</ion-label>
+            <ion-input
+              [(ngModel)]="perfil.tarjetaPrincipal!.numeroTarjeta"
+              name="numeroTarjeta"
+              type="text"
+              inputmode="numeric"
+              maxlength="19"
+              [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-number')"
+              placeholder="1234 5678 9012 3456"
+              (ionInput)="actualizarNumeroTarjeta($event)"
+            ></ion-input>
+          </ion-item>
+          @if (mostrarErrorCampo('numeroTarjeta')) {
+            <p class="campo-error">Introduce una tarjeta válida de 16 dígitos.</p>
+          }
 
-        <ion-item lines="inset">
-          <ion-label position="stacked">Fecha de caducidad</ion-label>
-          <ion-input
-            [(ngModel)]="perfil.tarjetaPrincipal!.fechaCaducidad"
-            name="fechaCaducidad"
-            type="text"
-            inputmode="numeric"
-            maxlength="5"
-            [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-exp')"
-            placeholder="MM/AA"
-            (ionInput)="actualizarFechaCaducidad($event)"
-          ></ion-input>
-        </ion-item>
-        @if (mostrarErrorCampo('fechaCaducidad')) {
-          <p class="campo-error">Usa el formato MM/AA y una fecha no caducada.</p>
-        }
+          <ion-item lines="inset">
+            <ion-label position="stacked">Fecha de caducidad</ion-label>
+            <ion-input
+              [(ngModel)]="perfil.tarjetaPrincipal!.fechaCaducidad"
+              name="fechaCaducidad"
+              type="text"
+              inputmode="numeric"
+              maxlength="5"
+              [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-exp')"
+              placeholder="MM/AA"
+              (ionInput)="actualizarFechaCaducidad($event)"
+            ></ion-input>
+          </ion-item>
+          @if (mostrarErrorCampo('fechaCaducidad')) {
+            <p class="campo-error">Usa el formato MM/AA y una fecha no caducada.</p>
+          }
 
-        <ion-item lines="none">
-          <ion-label position="stacked">CVV</ion-label>
-          <ion-input
-            [(ngModel)]="perfil.tarjetaPrincipal!.cvv"
-            name="cvv"
-            type="password"
-            inputmode="numeric"
-            maxlength="3"
-            [attr.autocomplete]="obtenerAutocompleteCvv()"
-            placeholder="123"
-            (ionInput)="actualizarCvv($event)"
-          ></ion-input>
-        </ion-item>
-        @if (mostrarErrorCampo('cvv')) {
-          <p class="campo-error">El CVV debe tener exactamente 3 dígitos.</p>
+          <ion-item lines="none">
+            <ion-label position="stacked">CVV</ion-label>
+            <ion-input
+              [(ngModel)]="perfil.tarjetaPrincipal!.cvv"
+              name="cvv"
+              type="password"
+              inputmode="numeric"
+              maxlength="3"
+              [attr.autocomplete]="obtenerAutocompleteCvv()"
+              placeholder="123"
+              (ionInput)="actualizarCvv($event)"
+            ></ion-input>
+          </ion-item>
+          @if (mostrarErrorCampo('cvv')) {
+            <p class="campo-error">El CVV debe tener exactamente 3 dígitos.</p>
+          }
         }
       </ion-card-content>
     </ion-card>

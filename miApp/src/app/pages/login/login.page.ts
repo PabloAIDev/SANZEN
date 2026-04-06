@@ -12,14 +12,12 @@ import {
   IonInput,
   IonItem,
   IonLabel,
-  IonList,
   IonNote,
   IonTitle,
   IonToolbar
 } from '@ionic/angular/standalone';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
-import { SessionUser } from '../../models/session-user.model';
 import { OrderService } from '../../services/order.service';
 import { ProfileService } from '../../services/profile.service';
 import { SubscriptionService } from '../../services/subscription.service';
@@ -46,7 +44,6 @@ import { FirstOrderService } from '../../services/first-order.service';
     IonLabel,
     IonInput,
     IonButton,
-    IonList,
     IonNote
   ]
 })
@@ -56,7 +53,6 @@ export class LoginPage implements OnInit {
   nombreRegistro = '';
   emailRegistro = '';
   passwordRegistro = '';
-  usuariosDisponibles: SessionUser[] = [];
   cargando = false;
   error = '';
   errorRegistro = '';
@@ -77,12 +73,10 @@ export class LoginPage implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.redirectTrasLogin = this.route.snapshot.queryParamMap.get('redirect');
-    await this.cargarUsuarios();
   }
 
   async ionViewWillEnter(): Promise<void> {
     this.redirectTrasLogin = this.route.snapshot.queryParamMap.get('redirect');
-    await this.cargarUsuarios();
   }
 
   async iniciarSesion(): Promise<void> {
@@ -169,7 +163,6 @@ export class LoginPage implements OnInit {
         this.firstOrderService.marcarUsuarioRecienCreado(usuario.email);
       }
 
-      await this.cargarUsuarios();
       this.email = usuario.email;
       this.password = '';
       this.nombreRegistro = '';
@@ -186,22 +179,6 @@ export class LoginPage implements OnInit {
       }
     } finally {
       this.cargando = false;
-    }
-  }
-
-  completarUsuario(usuario: SessionUser): void {
-    this.email = usuario.email;
-    this.password = '';
-    this.error = '';
-    this.intentoRegistro = false;
-    this.errorRegistro = '';
-  }
-
-  private async cargarUsuarios(): Promise<void> {
-    try {
-      this.usuariosDisponibles = await this.userSessionService.obtenerUsuarios();
-    } catch {
-      this.usuariosDisponibles = [];
     }
   }
 

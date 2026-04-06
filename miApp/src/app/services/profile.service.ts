@@ -44,7 +44,7 @@ export class ProfileService {
   guardarPerfil(perfil: UserProfile): void {
     this.sincronizarCacheConUsuarioActual();
     const perfilNormalizado = this.normalizarPerfil(perfil);
-    this.perfilCache = perfilNormalizado;
+    this.perfilCache = this.sanitizarPerfilPersistible(perfilNormalizado);
     this.persistirPerfilLocal();
     void this.guardarPerfilEnApi(perfilNormalizado);
   }
@@ -52,7 +52,7 @@ export class ProfileService {
   async guardarPerfilPersistido(perfil: UserProfile): Promise<UserProfile> {
     this.sincronizarCacheConUsuarioActual();
     const perfilNormalizado = this.normalizarPerfil(perfil);
-    this.perfilCache = perfilNormalizado;
+    this.perfilCache = this.sanitizarPerfilPersistible(perfilNormalizado);
     this.persistirPerfilLocal();
     await this.guardarPerfilEnApi(perfilNormalizado);
     return this.obtenerPerfil();
@@ -202,7 +202,9 @@ export class ProfileService {
     try {
       const perfilLocal = this.cargarPerfilLocal();
       const perfilApi = await firstValueFrom(this.http.get<UserProfile>(`${this.apiUrl}?userId=${userId}`));
-      this.perfilCache = this.combinarDatosSensibles(this.normalizarPerfil(perfilApi), perfilLocal);
+      this.perfilCache = this.sanitizarPerfilPersistible(
+        this.combinarDatosSensibles(this.normalizarPerfil(perfilApi), perfilLocal)
+      );
       this.persistirPerfilLocal();
     } catch (error) {
       console.warn('No se ha podido cargar el perfil desde la API. Se usa localStorage.', error);
@@ -224,7 +226,7 @@ export class ProfileService {
         })
       );
 
-      this.perfilCache = this.normalizarPerfil(perfilApi);
+      this.perfilCache = this.sanitizarPerfilPersistible(this.normalizarPerfil(perfilApi));
       this.persistirPerfilLocal();
       return this.perfilCache;
     } catch (error) {
@@ -234,7 +236,10 @@ export class ProfileService {
   }
 
   private persistirPerfilLocal(): void {
-    localStorage.setItem(this.obtenerStorageKey(), JSON.stringify(this.perfilCache));
+    localStorage.setItem(
+      this.obtenerStorageKey(),
+      JSON.stringify(this.sanitizarPerfilPersistible(this.perfilCache))
+    );
   }
 
   private cargarPerfilLocal(): UserProfile {
@@ -246,7 +251,7 @@ export class ProfileService {
 
     try {
       const perfil = JSON.parse(perfilGuardado) as Partial<UserProfile>;
-      return this.normalizarPerfil(perfil);
+      return this.sanitizarPerfilPersistible(this.normalizarPerfil(perfil));
     } catch {
       return this.obtenerPerfilVacio();
     }
@@ -345,20 +350,15 @@ export class ProfileService {
   }
 
   private combinarDatosSensibles(perfilApi: UserProfile, perfilLocal: UserProfile): UserProfile {
-    const password =
-      perfilApi.password === this.passwordSentinel && perfilLocal.password.trim() !== ''
-        ? perfilLocal.password
-        : perfilApi.password;
-
-    const tarjetaPrincipal = this.tieneTarjetaCompleta(perfilLocal.tarjetaPrincipal)
-      ? perfilLocal.tarjetaPrincipal
-      : this.tarjetaRemotaAprovechable(perfilApi.tarjetaPrincipal)
-        ? perfilApi.tarjetaPrincipal
+    const tarjetaPrincipal = this.tarjetaRemotaAprovechable(perfilApi.tarjetaPrincipal)
+      ? perfilApi.tarjetaPrincipal
+      : this.tarjetaRemotaAprovechable(perfilLocal.tarjetaPrincipal)
+        ? perfilLocal.tarjetaPrincipal
         : null;
 
     return {
       ...perfilApi,
-      password,
+      password: perfilApi.password,
       tarjetaPrincipal
     };
   }
@@ -445,6 +445,16 @@ export class ProfileService {
     return /^\*{4}\s\*{4}\s\*{4}\s\d{4}$/.test(valor.trim());
   }
 
+  private enmascararNumeroTarjeta(valor: string): string {
+    const digitos = valor.replace(/\D/g, '');
+
+    if (digitos.length < 4) {
+      return '';
+    }
+
+    return `**** **** **** ${digitos.slice(-4)}`;
+  }
+
   private tieneDatosTarjeta(tarjeta: TarjetaPrincipal | null): boolean {
     if (!tarjeta) {
       return false;
@@ -456,6 +466,35 @@ export class ProfileService {
       tarjeta.fechaCaducidad.trim() !== '' ||
       tarjeta.cvv.trim() !== ''
     );
+  }
+
+  private sanitizarPerfilPersistible(perfil: UserProfile): UserProfile {
+    return {
+      ...perfil,
+      password: perfil.password.trim() !== '' ? this.passwordSentinel : '',
+      tarjetaPrincipal: this.sanitizarTarjetaPersistible(perfil.tarjetaPrincipal)
+    };
+  }
+
+  private sanitizarTarjetaPersistible(tarjeta: TarjetaPrincipal | null): TarjetaPrincipal | null {
+    if (!tarjeta) {
+      return null;
+    }
+
+    const numeroTarjeta = this.numeroTarjetaEsValido(tarjeta.numeroTarjeta)
+      ? this.enmascararNumeroTarjeta(tarjeta.numeroTarjeta)
+      : this.numeroTarjetaEnmascaradoEsValido(tarjeta.numeroTarjeta)
+        ? tarjeta.numeroTarjeta.trim()
+        : '';
+
+    const tarjetaSanitizada: TarjetaPrincipal = {
+      nombreTitular: tarjeta.nombreTitular.trim(),
+      numeroTarjeta,
+      fechaCaducidad: tarjeta.fechaCaducidad.trim(),
+      cvv: ''
+    };
+
+    return this.tarjetaRemotaAprovechable(tarjetaSanitizada) ? tarjetaSanitizada : null;
   }
 
   private sincronizarCacheConUsuarioActual(): void {

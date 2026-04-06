@@ -16,6 +16,7 @@ import {
   IonItem,
   IonLabel,
   IonList,
+  IonNote,
   IonRadio,
   IonRadioGroup,
   IonSelect,
@@ -63,6 +64,7 @@ interface DireccionEntrega {
     IonList,
     IonItem,
     IonLabel,
+    IonNote,
     IonSelect,
     IonSelectOption,
     IonRadioGroup,
@@ -189,6 +191,10 @@ export class PagoPage implements OnInit {
 
   mostrarSelectorDiaSuscripcion(): boolean {
     return this.firstOrderService.estaActivo() && this.firstOrderService.esModoSuscripcion();
+  }
+
+  tarjetaGuardadaEnmascaradaVisible(): boolean {
+    return this.profileService.tarjetaPrincipalGuardadaEsUsable(this.obtenerTarjetaActualFormulario());
   }
 
   formularioTarjetaValido(): boolean {

@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const TARJETA_ENMASCARADA_REGEX = /^\*{4}\s\*{4}\s\*{4}\s\d{4}$/;
 
 function normalizarTexto(valor) {
   return typeof valor === 'string' ? valor.trim() : '';
@@ -42,6 +43,10 @@ function numeroTarjetaValido(valor) {
   return /^\d{16}$/.test(digitos);
 }
 
+function numeroTarjetaEnmascaradoValido(valor) {
+  return TARJETA_ENMASCARADA_REGEX.test(normalizarTexto(valor));
+}
+
 function fechaCaducidadValida(valor) {
   const coincidencia = normalizarTexto(valor).match(/^(\d{2})\/(\d{2}|\d{4})$/);
 
@@ -61,10 +66,6 @@ function fechaCaducidadValida(valor) {
   return fechaExpiracion >= new Date();
 }
 
-function cvvValido(valor) {
-  return /^\d{3}$/.test(normalizarTexto(valor));
-}
-
 function direccionCompleta(direccion) {
   return Boolean(
     direccion &&
@@ -81,9 +82,8 @@ function tarjetaCompleta(tarjeta) {
   return Boolean(
     tarjeta &&
     textoValido(tarjeta.nombre_titular, 3) &&
-    numeroTarjetaValido(tarjeta.numero_enmascarado) &&
-    fechaCaducidadValida(tarjeta.fecha_caducidad) &&
-    cvvValido(tarjeta.cvv)
+    (numeroTarjetaEnmascaradoValido(tarjeta.numero_enmascarado) || numeroTarjetaValido(tarjeta.numero_enmascarado)) &&
+    fechaCaducidadValida(tarjeta.fecha_caducidad)
   );
 }
 
@@ -141,8 +141,7 @@ function obtenerCamposFaltantesTarjeta(tarjeta) {
     return [
       'nombre del titular',
       'numero de tarjeta',
-      'fecha de caducidad',
-      'CVV'
+      'fecha de caducidad'
     ];
   }
 
@@ -152,16 +151,12 @@ function obtenerCamposFaltantesTarjeta(tarjeta) {
     missing.push('nombre del titular');
   }
 
-  if (!numeroTarjetaValido(tarjeta.numero_enmascarado)) {
+  if (!numeroTarjetaEnmascaradoValido(tarjeta.numero_enmascarado) && !numeroTarjetaValido(tarjeta.numero_enmascarado)) {
     missing.push('numero de tarjeta');
   }
 
   if (!fechaCaducidadValida(tarjeta.fecha_caducidad)) {
     missing.push('fecha de caducidad');
-  }
-
-  if (!cvvValido(tarjeta.cvv)) {
-    missing.push('CVV');
   }
 
   return missing;
@@ -368,7 +363,7 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
 
     const [[tarjeta]] = await pool.query(
       `
-      SELECT nombre_titular, numero_enmascarado, fecha_caducidad, cvv
+      SELECT nombre_titular, numero_enmascarado, fecha_caducidad
       FROM tarjetas
       WHERE usuario_id = ?
       ORDER BY es_principal DESC, id ASC
@@ -561,16 +556,32 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
     SELECT
       p.id,
       p.nombre,
+      p.descripcion,
       p.categoria,
       p.precio,
       p.calorias,
       p.health_score AS healthScore,
+      p.protein_g,
+      p.carbohydrates_g,
+      p.fat_g,
+      p.fiber_g,
       COALESCE(JSON_ARRAYAGG(a.nombre), JSON_ARRAY()) AS allergens
     FROM platos p
     LEFT JOIN plato_alergenos pa ON pa.plato_id = p.id
     LEFT JOIN alergenos a ON a.id = pa.alergeno_id
     WHERE p.disponible = TRUE
-    GROUP BY p.id, p.nombre, p.categoria, p.precio, p.calorias, p.health_score
+    GROUP BY
+      p.id,
+      p.nombre,
+      p.descripcion,
+      p.categoria,
+      p.precio,
+      p.calorias,
+      p.health_score,
+      p.protein_g,
+      p.carbohydrates_g,
+      p.fat_g,
+      p.fiber_g
     ORDER BY p.id
     `
   );
@@ -578,10 +589,15 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
   context.catalog = catalogRows.map((item) => ({
     id: normalizarNumero(item.id),
     name: normalizarTexto(item.nombre),
+    description: normalizarTexto(item.descripcion),
     category: normalizarTexto(item.categoria),
     price: normalizarNumero(item.precio),
     calories: normalizarNumero(item.calorias),
     healthScore: normalizarNumero(item.healthScore),
+    proteinG: normalizarNumero(item.protein_g),
+    carbohydratesG: normalizarNumero(item.carbohydrates_g),
+    fatG: normalizarNumero(item.fat_g),
+    fiberG: normalizarNumero(item.fiber_g),
     allergens: parseJsonArray(item.allergens).map((allergen) => normalizarTexto(allergen))
   }));
 

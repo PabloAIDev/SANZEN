@@ -2,9 +2,15 @@ const pool = require('../config/db');
 const { obtenerUserIdSeguro } = require('../middleware/auth');
 const { hashPassword } = require('../utils/passwords');
 
+function esErrorEmailDuplicado(error) {
+  return error?.code === 'ER_DUP_ENTRY';
+}
+
 const PASSWORD_SENTINEL = '********';
 const SOLO_LETRAS_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s.'-]+$/;
 const CALLE_NUMERO_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9\s,./ºª#-]+$/;
+
+const TARJETA_ENMASCARADA_REGEX = /^\*{4}\s\*{4}\s\*{4}\s\d{4}$/;
 
 function textoValido(valor, minimo) {
   return typeof valor === 'string' && valor.trim().length >= minimo;
@@ -62,6 +68,10 @@ function cvvValido(valor) {
   return /^\d{3}$/.test(String(valor ?? '').trim());
 }
 
+function numeroTarjetaEnmascaradoValido(valor) {
+  return TARJETA_ENMASCARADA_REGEX.test(String(valor ?? '').trim());
+}
+
 function direccionValida(direccion) {
   return direccion &&
     textoValido(direccion.nombre, 2) &&
@@ -93,6 +103,17 @@ function tarjetaValida(tarjeta) {
     cvvValido(tarjeta.cvv);
 }
 
+function tarjetaGuardadaUsable(tarjeta) {
+  return tarjeta &&
+    nombreTitularValido(tarjeta.nombreTitular) &&
+    numeroTarjetaEnmascaradoValido(tarjeta.numeroTarjeta) &&
+    fechaCaducidadValida(tarjeta.fechaCaducidad);
+}
+
+function tarjetaPersistibleValida(tarjeta) {
+  return tarjetaValida(tarjeta) || tarjetaGuardadaUsable(tarjeta);
+}
+
 function validarPerfil(perfil, opciones = {}) {
   if (!textoSoloLetrasValido(perfil.nombre, 2)) {
     return 'El nombre debe tener al menos 2 letras y no puede incluir números.';
@@ -110,7 +131,7 @@ function validarPerfil(perfil, opciones = {}) {
     return 'La dirección principal no es válida.';
   }
 
-  if (tarjetaTieneDatos(perfil.tarjetaPrincipal) && !tarjetaValida(perfil.tarjetaPrincipal)) {
+  if (tarjetaTieneDatos(perfil.tarjetaPrincipal) && !tarjetaPersistibleValida(perfil.tarjetaPrincipal)) {
     return 'La tarjeta principal no es válida.';
   }
 
@@ -127,106 +148,13 @@ async function getPerfil(req, res) {
     }
     const userId = userIdResult.userId;
 
-    const [[usuario]] = await pool.query(
-      `
-      SELECT id, nombre, email, password_hash
-      FROM usuarios
-      WHERE id = ?
-      LIMIT 1
-      `,
-      [userId]
-    );
+    const perfilRespuesta = await construirRespuestaPerfil(pool, userId);
 
-    if (!usuario) {
+    if (!perfilRespuesta) {
       res.json(obtenerPerfilVacio());
       return;
     }
-
-    const [[perfil]] = await pool.query(
-      `
-      SELECT id, objetivo_nutricional
-      FROM perfiles
-      WHERE usuario_id = ?
-      LIMIT 1
-      `,
-      [userId]
-    );
-
-    const [alergenosRows] = perfil
-      ? await pool.query(
-          `
-          SELECT a.nombre
-          FROM perfil_alergenos pa
-          INNER JOIN alergenos a ON a.id = pa.alergeno_id
-          WHERE pa.perfil_id = ?
-          ORDER BY a.nombre
-          `,
-          [perfil.id]
-        )
-      : [[]];
-
-    const [preferenciasRows] = perfil
-      ? await pool.query(
-          `
-          SELECT pc.nombre
-          FROM perfil_preferencias pp
-          INNER JOIN preferencias_composicion pc ON pc.id = pp.preferencia_id
-          WHERE pp.perfil_id = ?
-          ORDER BY pc.nombre
-          `,
-          [perfil.id]
-        )
-      : [[]];
-
-    const [[direccion]] = await pool.query(
-      `
-      SELECT nombre, calle_numero, ciudad, codigo_postal, provincia, telefono, instrucciones
-      FROM direcciones
-      WHERE usuario_id = ?
-      ORDER BY es_principal DESC, id ASC
-      LIMIT 1
-      `,
-      [userId]
-    );
-
-    const [[tarjeta]] = await pool.query(
-      `
-      SELECT nombre_titular, numero_enmascarado, fecha_caducidad, cvv
-      FROM tarjetas
-      WHERE usuario_id = ?
-      ORDER BY es_principal DESC, id ASC
-      LIMIT 1
-      `,
-      [userId]
-    );
-
-    res.json({
-      nombre: usuario.nombre ?? '',
-      email: usuario.email ?? '',
-      password: usuario.password_hash ? PASSWORD_SENTINEL : '',
-      alergenos: alergenosRows.map(alergeno => alergeno.nombre),
-      objetivoNutricional: perfil?.objetivo_nutricional ?? null,
-      preferenciasComposicion: preferenciasRows.map(preferencia => preferencia.nombre),
-      direccionPrincipal: direccion
-        ? {
-            nombre: direccion.nombre ?? '',
-            calleNumero: direccion.calle_numero ?? '',
-            ciudad: direccion.ciudad ?? '',
-            codigoPostal: direccion.codigo_postal ?? '',
-            provincia: direccion.provincia ?? '',
-            telefono: direccion.telefono ?? '',
-            instrucciones: direccion.instrucciones ?? ''
-          }
-        : null,
-      tarjetaPrincipal: tarjeta
-        ? {
-            nombreTitular: tarjeta.nombre_titular ?? '',
-            numeroTarjeta: enmascararTarjeta(tarjeta.numero_enmascarado ?? ''),
-            fechaCaducidad: tarjeta.fecha_caducidad ?? '',
-            cvv: ''
-          }
-        : null
-    });
+    res.json(perfilRespuesta);
   } catch (error) {
     console.error('Error al obtener perfil:', error);
     res.status(500).json({ message: 'No se ha podido obtener el perfil.' });
@@ -245,6 +173,26 @@ async function upsertPerfil(req, res) {
       return;
     }
     const userId = userIdResult.userId;
+
+    if (!perfil || typeof perfil !== 'object') {
+      res.status(400).json({ message: 'El perfil no tiene el formato esperado.' });
+      return;
+    }
+
+    const [[usuarioConEmail]] = await connection.query(
+      `
+      SELECT id
+      FROM usuarios
+      WHERE email = ? AND id <> ?
+      LIMIT 1
+      `,
+      [perfil.email ?? '', userId]
+    );
+
+    if (usuarioConEmail) {
+      res.status(409).json({ message: 'Ese email ya está siendo utilizado por otro usuario.' });
+      return;
+    }
 
     const [[usuarioActual]] = await connection.query(
       `
@@ -434,23 +382,39 @@ async function upsertPerfil(req, res) {
       );
 
       const tarjetaValidaCompleta = tarjetaValida(perfil.tarjetaPrincipal);
+      const tarjetaPersistible = tarjetaValidaCompleta
+        ? {
+            nombreTitular: perfil.tarjetaPrincipal.nombreTitular ?? '',
+            numeroEnmascarado: enmascararTarjeta(perfil.tarjetaPrincipal.numeroTarjeta ?? ''),
+            fechaCaducidad: perfil.tarjetaPrincipal.fechaCaducidad ?? ''
+          }
+        : tarjetaGuardadaUsable(perfil.tarjetaPrincipal)
+          ? {
+              nombreTitular: perfil.tarjetaPrincipal.nombreTitular ?? '',
+              numeroEnmascarado: String(perfil.tarjetaPrincipal.numeroTarjeta ?? '').trim(),
+              fechaCaducidad: perfil.tarjetaPrincipal.fechaCaducidad ?? ''
+            }
+          : null;
 
-      if (tarjetaRows.length > 0 && tarjetaValidaCompleta) {
+      if (!tarjetaPersistible) {
+        throw Object.assign(new Error('La tarjeta principal no es vÃ¡lida.'), { status: 400 });
+      }
+
+      if (tarjetaRows.length > 0) {
         await connection.query(
           `
           UPDATE tarjetas
-          SET nombre_titular = ?, numero_enmascarado = ?, fecha_caducidad = ?, cvv = ?, es_principal = TRUE
+          SET nombre_titular = ?, numero_enmascarado = ?, fecha_caducidad = ?, cvv = NULL, es_principal = TRUE
           WHERE id = ?
           `,
           [
-            perfil.tarjetaPrincipal.nombreTitular ?? '',
-            perfil.tarjetaPrincipal.numeroTarjeta ?? '',
-            perfil.tarjetaPrincipal.fechaCaducidad ?? '',
-            perfil.tarjetaPrincipal.cvv ?? '',
+            tarjetaPersistible.nombreTitular,
+            tarjetaPersistible.numeroEnmascarado,
+            tarjetaPersistible.fechaCaducidad,
             tarjetaRows[0].id
           ]
         );
-      } else if (tarjetaRows.length === 0 && tarjetaValidaCompleta) {
+      } else if (tarjetaValidaCompleta) {
         await connection.query(
           `
           INSERT INTO tarjetas (
@@ -458,25 +422,36 @@ async function upsertPerfil(req, res) {
             nombre_titular,
             numero_enmascarado,
             fecha_caducidad,
-            cvv,
             es_principal
-          ) VALUES (?, ?, ?, ?, ?, TRUE)
+          ) VALUES (?, ?, ?, ?, TRUE)
           `,
           [
             userId,
-            perfil.tarjetaPrincipal.nombreTitular ?? '',
-            perfil.tarjetaPrincipal.numeroTarjeta ?? '',
-            perfil.tarjetaPrincipal.fechaCaducidad ?? '',
-            perfil.tarjetaPrincipal.cvv ?? ''
+            tarjetaPersistible.nombreTitular,
+            tarjetaPersistible.numeroEnmascarado,
+            tarjetaPersistible.fechaCaducidad
           ]
         );
+      } else {
+        throw Object.assign(new Error('La tarjeta principal no es vÃ¡lida.'), { status: 400 });
       }
     }
 
     await connection.commit();
-    res.json(perfil);
+    const perfilActualizado = await construirRespuestaPerfil(connection, userId);
+    res.json(perfilActualizado ?? obtenerPerfilVacio());
   } catch (error) {
     await connection.rollback();
+    if (error.status) {
+      res.status(error.status).json({ message: error.message });
+      return;
+    }
+
+    if (esErrorEmailDuplicado(error)) {
+      res.status(409).json({ message: 'Ese email ya está siendo utilizado por otro usuario.' });
+      return;
+    }
+
     console.error('Error al guardar perfil:', error);
     res.status(500).json({ message: 'No se ha podido guardar el perfil.' });
   } finally {
@@ -501,10 +476,113 @@ function enmascararTarjeta(numeroTarjeta) {
   const digitos = String(numeroTarjeta ?? '').replace(/\D/g, '');
 
   if (digitos.length < 4) {
-    return '';
+    const numeroNormalizado = String(numeroTarjeta ?? '').trim();
+    return numeroTarjetaEnmascaradoValido(numeroNormalizado) ? numeroNormalizado : '';
   }
 
   return `**** **** **** ${digitos.slice(-4)}`;
+}
+
+async function construirRespuestaPerfil(executor, userId) {
+  const [[usuario]] = await executor.query(
+    `
+    SELECT id, nombre, email, password_hash
+    FROM usuarios
+    WHERE id = ?
+    LIMIT 1
+    `,
+    [userId]
+  );
+
+  if (!usuario) {
+    return null;
+  }
+
+  const [[perfil]] = await executor.query(
+    `
+    SELECT id, objetivo_nutricional
+    FROM perfiles
+    WHERE usuario_id = ?
+    LIMIT 1
+    `,
+    [userId]
+  );
+
+  const [alergenosRows] = perfil
+    ? await executor.query(
+        `
+        SELECT a.nombre
+        FROM perfil_alergenos pa
+        INNER JOIN alergenos a ON a.id = pa.alergeno_id
+        WHERE pa.perfil_id = ?
+        ORDER BY a.nombre
+        `,
+        [perfil.id]
+      )
+    : [[]];
+
+  const [preferenciasRows] = perfil
+    ? await executor.query(
+        `
+        SELECT pc.nombre
+        FROM perfil_preferencias pp
+        INNER JOIN preferencias_composicion pc ON pc.id = pp.preferencia_id
+        WHERE pp.perfil_id = ?
+        ORDER BY pc.nombre
+        `,
+        [perfil.id]
+      )
+    : [[]];
+
+  const [[direccion]] = await executor.query(
+    `
+    SELECT nombre, calle_numero, ciudad, codigo_postal, provincia, telefono, instrucciones
+    FROM direcciones
+    WHERE usuario_id = ?
+    ORDER BY es_principal DESC, id ASC
+    LIMIT 1
+    `,
+    [userId]
+  );
+
+  const [[tarjeta]] = await executor.query(
+    `
+    SELECT nombre_titular, numero_enmascarado, fecha_caducidad
+    FROM tarjetas
+    WHERE usuario_id = ?
+    ORDER BY es_principal DESC, id ASC
+    LIMIT 1
+    `,
+    [userId]
+  );
+
+  return {
+    nombre: usuario.nombre ?? '',
+    email: usuario.email ?? '',
+    password: usuario.password_hash ? PASSWORD_SENTINEL : '',
+    alergenos: alergenosRows.map(alergeno => alergeno.nombre),
+    objetivoNutricional: perfil?.objetivo_nutricional ?? null,
+    preferenciasComposicion: preferenciasRows.map(preferencia => preferencia.nombre),
+    direccionPrincipal: direccion
+      ? {
+          nombre: direccion.nombre ?? '',
+          calleNumero: direccion.calle_numero ?? '',
+          ciudad: direccion.ciudad ?? '',
+          codigoPostal: direccion.codigo_postal ?? '',
+          provincia: direccion.provincia ?? '',
+          telefono: direccion.telefono ?? '',
+          instrucciones: direccion.instrucciones ?? ''
+        }
+      : null,
+    tarjetaPrincipal: tarjeta
+      ? {
+          nombreTitular: tarjeta.nombre_titular ?? '',
+          numeroTarjeta: enmascararTarjeta(tarjeta.numero_enmascarado ?? ''),
+          fechaCaducidad: tarjeta.fecha_caducidad ?? '',
+          cvv: ''
+        }
+      : null
+  };
 }
 
 module.exports = {

@@ -1,5 +1,5 @@
 const pool = require('../config/db');
-const { hashPassword, verifyPassword, esHashBcrypt } = require('../utils/passwords');
+const { hashPassword, verifyPassword } = require('../utils/passwords');
 const { createSessionToken } = require('../utils/session');
 
 function emailValido(valor) {
@@ -8,27 +8,6 @@ function emailValido(valor) {
 
 function passwordValida(valor) {
   return String(valor ?? '').trim().length >= 6;
-}
-
-async function listUsuarios(req, res) {
-  try {
-    const [rows] = await pool.query(
-      `
-      SELECT id, nombre, email
-      FROM usuarios
-      ORDER BY id
-      `
-    );
-
-    res.json(rows.map(usuario => ({
-      id: usuario.id,
-      nombre: usuario.nombre,
-      email: usuario.email
-    })));
-  } catch (error) {
-    console.error('Error al listar usuarios:', error);
-    res.status(500).json({ message: 'No se han podido cargar los usuarios.' });
-  }
 }
 
 async function login(req, res) {
@@ -58,18 +37,6 @@ async function login(req, res) {
     if (!usuario || !credencialesValidas) {
       res.status(401).json({ message: 'Credenciales incorrectas.' });
       return;
-    }
-
-    if (!esHashBcrypt(usuario.password_hash)) {
-      const passwordHash = await hashPassword(password);
-      await pool.query(
-        `
-        UPDATE usuarios
-        SET password_hash = ?
-        WHERE id = ?
-        `,
-        [passwordHash, usuario.id]
-      );
     }
 
     res.json({
@@ -149,7 +116,6 @@ async function register(req, res) {
 }
 
 module.exports = {
-  listUsuarios,
   login,
   register
 };

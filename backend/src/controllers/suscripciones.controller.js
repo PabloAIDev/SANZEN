@@ -1,5 +1,81 @@
 const pool = require('../config/db');
 const { obtenerUserIdSeguro } = require('../middleware/auth');
+const DESCUENTO_SUSCRIPCION_POR_PLAN = Object.freeze({
+  5: 20
+});
+const DIAS_ENTREGA_VALIDOS = new Set([
+  'lunes',
+  'martes',
+  'miercoles',
+  'jueves',
+  'viernes',
+  'sabado',
+  'domingo'
+]);
+const TARJETA_ENMASCARADA_REGEX = /^\*{4}\s\*{4}\s\*{4}\s\d{4}$/;
+
+function numeroTarjetaValido(valor) {
+  const digitos = String(valor ?? '').replace(/\D/g, '');
+  return /^\d{16}$/.test(digitos);
+}
+
+function numeroTarjetaEnmascaradoValido(valor) {
+  return TARJETA_ENMASCARADA_REGEX.test(String(valor ?? '').trim());
+}
+
+function fechaCaducidadValida(valor) {
+  const coincidencia = String(valor ?? '').trim().match(/^(\d{2})\/(\d{2}|\d{4})$/);
+
+  if (!coincidencia) {
+    return false;
+  }
+
+  const mes = Number(coincidencia[1]);
+  const anioTexto = coincidencia[2];
+
+  if (mes < 1 || mes > 12) {
+    return false;
+  }
+
+  const anio = anioTexto.length === 2 ? 2000 + Number(anioTexto) : Number(anioTexto);
+  const fechaExpiracion = new Date(anio, mes, 0, 23, 59, 59, 999);
+  return fechaExpiracion >= new Date();
+}
+
+function direccionValida(direccion) {
+  return Boolean(
+    direccion &&
+    typeof direccion.nombre === 'string' && direccion.nombre.trim().length >= 2 &&
+    typeof direccion.calle_numero === 'string' && direccion.calle_numero.trim().length >= 5 &&
+    typeof direccion.ciudad === 'string' && direccion.ciudad.trim().length >= 2 &&
+    /^\d{5}$/.test(String(direccion.codigo_postal ?? '').trim()) &&
+    typeof direccion.provincia === 'string' && direccion.provincia.trim().length >= 2 &&
+    /^\d{9}$/.test(String(direccion.telefono ?? '').replace(/\s/g, ''))
+  );
+}
+
+function tarjetaValida(tarjeta) {
+  return Boolean(
+    tarjeta &&
+    typeof tarjeta.nombre_titular === 'string' && tarjeta.nombre_titular.trim().length >= 3 &&
+    (numeroTarjetaEnmascaradoValido(tarjeta.numero_enmascarado) || numeroTarjetaValido(tarjeta.numero_enmascarado)) &&
+    fechaCaducidadValida(tarjeta.fecha_caducidad)
+  );
+}
+
+function normalizarIdsPlatos(ids) {
+  if (!Array.isArray(ids)) {
+    return [];
+  }
+
+  return ids
+    .map(id => Number(id))
+    .filter(id => Number.isInteger(id) && id > 0);
+}
+
+function obtenerDescuentoPorcentajeSuscripcion(planSemanal) {
+  return DESCUENTO_SUSCRIPCION_POR_PLAN[Number(planSemanal)] ?? 0;
+}
 
 async function getSuscripcion(req, res) {
   try {
@@ -81,6 +157,23 @@ async function upsertSuscripcion(req, res) {
       return;
     }
     const userId = userIdResult.userId;
+    const diaEntrega = String(suscripcion.diaEntrega ?? '').trim().toLowerCase();
+    const platosSeleccionadosIds = normalizarIdsPlatos(suscripcion.platosSeleccionadosIds);
+
+    if (Array.isArray(suscripcion.platosSeleccionadosIds) && platosSeleccionadosIds.length !== suscripcion.platosSeleccionadosIds.length) {
+      res.status(400).json({ message: 'La selección de platos de la suscripción no es válida.' });
+      return;
+    }
+
+    if (!DIAS_ENTREGA_VALIDOS.has(diaEntrega)) {
+      res.status(400).json({ message: 'El día de entrega de la suscripción no es válido.' });
+      return;
+    }
+
+    if (Boolean(suscripcion.activa) && platosSeleccionadosIds.length < 5) {
+      res.status(400).json({ message: 'La suscripción activa debe incluir al menos 5 platos.' });
+      return;
+    }
 
     await connection.beginTransaction();
 
@@ -96,10 +189,8 @@ async function upsertSuscripcion(req, res) {
     );
 
     let suscripcionId = suscripcionRows.length > 0 ? suscripcionRows[0].id : null;
-    const proximaEntregaMysql = calcularProximaEntregaMysql(suscripcion.diaEntrega);
-    const descuentoPorcentaje = Number(((suscripcion.descuentoAplicado > 0 && suscripcion.precioOriginal > 0)
-      ? (suscripcion.descuentoAplicado / suscripcion.precioOriginal) * 100
-      : 0).toFixed(2));
+    const proximaEntregaMysql = calcularProximaEntregaMysql(diaEntrega);
+    const descuentoPorcentaje = obtenerDescuentoPorcentajeSuscripcion(5);
 
     if (suscripcionId) {
       await connection.query(
@@ -111,7 +202,7 @@ async function upsertSuscripcion(req, res) {
         [
           Boolean(suscripcion.activa),
           5,
-          suscripcion.diaEntrega,
+          diaEntrega,
           descuentoPorcentaje,
           suscripcion.precioOriginal ?? 0,
           suscripcion.descuentoAplicado ?? 0,
@@ -139,7 +230,7 @@ async function upsertSuscripcion(req, res) {
           userId,
           Boolean(suscripcion.activa),
           5,
-          suscripcion.diaEntrega,
+          diaEntrega,
           descuentoPorcentaje,
           suscripcion.precioOriginal ?? 0,
           suscripcion.descuentoAplicado ?? 0,
@@ -153,10 +244,10 @@ async function upsertSuscripcion(req, res) {
 
     await connection.query('DELETE FROM suscripcion_platos WHERE suscripcion_id = ?', [suscripcionId]);
 
-    if (Array.isArray(suscripcion.platosSeleccionadosIds) && suscripcion.platosSeleccionadosIds.length > 0) {
+    if (platosSeleccionadosIds.length > 0) {
       const cantidadesPorPlato = new Map();
 
-      for (const platoId of suscripcion.platosSeleccionadosIds) {
+      for (const platoId of platosSeleccionadosIds) {
         cantidadesPorPlato.set(platoId, (cantidadesPorPlato.get(platoId) ?? 0) + 1);
       }
 
@@ -175,8 +266,12 @@ async function upsertSuscripcion(req, res) {
     res.json(suscripcion);
   } catch (error) {
     await connection.rollback();
-    console.error('Error al guardar suscripcion:', error);
-    res.status(500).json({ message: 'No se ha podido guardar la suscripcion.' });
+    if (!error.status) {
+      console.error('Error al guardar suscripcion:', error);
+    }
+    res.status(error.status ?? 500).json({
+      message: error.status ? error.message : 'No se ha podido guardar la suscripcion.'
+    });
   } finally {
     connection.release();
   }
@@ -202,7 +297,7 @@ async function simularRenovacionSemanal(req, res) {
         id,
         activa,
         dia_entrega,
-        descuento_porcentaje,
+        plan_semanal,
         proxima_entrega
       FROM suscripciones
       WHERE usuario_id = ? AND activa = TRUE
@@ -246,7 +341,7 @@ async function simularRenovacionSemanal(req, res) {
 
     const [[tarjeta]] = await connection.query(
       `
-      SELECT id
+      SELECT id, nombre_titular, numero_enmascarado, fecha_caducidad
       FROM tarjetas
       WHERE usuario_id = ?
       ORDER BY es_principal DESC, id ASC
@@ -255,7 +350,7 @@ async function simularRenovacionSemanal(req, res) {
       [userId]
     );
 
-    if (!direccion || !tarjeta) {
+    if (!direccionValida(direccion) || !tarjetaValida(tarjeta)) {
       res.status(400).json({ message: 'Necesitas una dirección y una tarjeta guardadas para simular la renovación semanal.' });
       return;
     }
@@ -295,7 +390,7 @@ async function simularRenovacionSemanal(req, res) {
       0
     );
     const descuento = Number(
-      (subtotal * (Number(suscripcion.descuento_porcentaje ?? 0) / 100)).toFixed(2)
+      (subtotal * (obtenerDescuentoPorcentajeSuscripcion(suscripcion.plan_semanal) / 100)).toFixed(2)
     );
     const total = Number((subtotal - descuento).toFixed(2));
     const publicId = `sub-renov-${userId}-${Date.now()}`;
