@@ -1,0 +1,418 @@
+{
+  "COMMON": {
+    "LANGUAGE_NAME": {
+      "es": "Spanish",
+      "en": "English"
+    },
+    "LANGUAGE_SWITCH_ARIA": "Switch language to {{language}}",
+    "NAV": {
+      "HOME": "Home",
+      "PROFILE": "View profile",
+      "MANAGE_SUBSCRIPTION": "Manage weekly subscription",
+      "ORDERS": "View my orders",
+      "HOW_IT_WORKS": "How it works",
+      "LOGOUT": "Log out",
+      "OPEN_MENU": "Open menu",
+      "GO_TO_PROFILE": "Go to profile",
+      "LANGUAGE": "Language"
+    },
+    "ACTIONS": {
+      "CONTINUE": "Continue",
+      "SAVE": "Save",
+      "CLEAR": "Clear",
+      "APPLY": "Apply",
+      "DELETE": "Delete",
+      "GO_TO_CART": "Go to cart",
+      "GO_TO_PAYMENT": "Go to payment",
+      "VIEW_ORDERS": "View my orders",
+      "BACK_TO_MENU": "Back to menu",
+      "SAVE_PROFILE": "Save profile",
+      "RESET_PREFERENCES": "Reset preferences",
+      "WEEKLY_SUBSCRIPTION": "Weekly subscription",
+      "INDIVIDUAL_ORDER": "Individual order",
+      "WEEKLY_RENEWAL": "Weekly renewal",
+      "SAVE_WEEKLY_PLAN": "Save weekly plan",
+      "CONFIRM_ORDER": "Confirm order",
+      "SAVE_CHANGES": "Save changes",
+      "CHOOSE_PLATES": "Choose dishes",
+      "COMPLETE_SELECTION": "Complete selection",
+      "MODIFY_SELECTION": "Modify selection",
+      "EMPTY_CART": "Empty cart",
+      "EMPTY_SELECTION": "Clear selection"
+    },
+    "LABELS": {
+      "TOTAL": "Total",
+      "SUBTOTAL": "Subtotal",
+      "DISCOUNT": "Discount",
+      "DELIVERY": "Delivery",
+      "PAYMENT": "Payment",
+      "DATE": "Date",
+      "TIMESLOT": "Time slot",
+      "QUANTITY": "Quantity",
+      "PRICE": "Price",
+      "STATUS": "Status",
+      "CATEGORY": "Category",
+      "HEALTH_SCORE": "HealthScore",
+      "ADDRESS": "Address",
+      "DELIVERY_ADDRESS": "Delivery address",
+      "INSTRUCTIONS": "Instructions",
+      "SEARCH": "Search",
+      "PORTION": "Serving",
+      "CALORIES": "Calories",
+      "PROTEIN": "Protein",
+      "CARBS": "Carbohydrates",
+      "FATS": "Fats",
+      "FIBER": "Fiber",
+      "BASIC_DATA": "Basic details",
+      "ORDER_NUMBER": "Order number",
+      "ALLERGENS": "Allergens",
+      "NUTRITIONAL_GOAL": "Nutritional goal",
+      "COMPOSITION_PREFERENCES": "Composition preferences",
+      "PAYMENT_CARD": "Main card"
+    },
+    "DAYS": {
+      "lunes": "Monday",
+      "martes": "Tuesday",
+      "miercoles": "Wednesday",
+      "jueves": "Thursday",
+      "viernes": "Friday",
+      "sabado": "Saturday",
+      "domingo": "Sunday"
+    },
+    "GOALS": {
+      "perder-peso": "Lose weight",
+      "masa-muscular": "Build muscle",
+      "NONE": "No goal"
+    },
+    "COMPOSITION": {
+      "ricos-proteina": "High protein",
+      "bajos-grasas": "Low fat",
+      "bajos-carbohidratos": "Low carb"
+    },
+    "CATEGORIES": {
+      "Todas": "All",
+      "Entrante": "Starter",
+      "Principal": "Main",
+      "Postre": "Dessert"
+    },
+    "ALLERGENS": {
+      "Crustáceos": "Crustaceans",
+      "Frutos secos": "Tree nuts",
+      "Gluten": "Gluten",
+      "Huevo": "Egg",
+      "Lácteos": "Dairy",
+      "Legumbres": "Legumes",
+      "Pescado": "Fish",
+      "Sésamo": "Sesame",
+      "Soja": "Soy"
+    },
+    "PAYMENT_METHODS": {
+      "tarjeta": "Card",
+      "bizum": "Bizum",
+      "efectivo": "Cash"
+    },
+    "ORDER_STATUS": {
+      "confirmado": "Confirmed",
+      "entregado": "Delivered"
+    },
+    "ORDER_TYPE": {
+      "NORMAL": "Standard order",
+      "SUBSCRIPTION": "Weekly subscription"
+    },
+    "PLACEHOLDERS": {
+      "OPTIONAL": "Optional"
+    }
+  },
+  "HOME": {
+    "HERO_EYEBROW": "Healthy delivery with Asian identity",
+    "TITLE": "Your healthy Asian meals for the week",
+    "SUBTITLE_ONE": "Personalised menus based on your tastes, allergies and intolerances.",
+    "SUBTITLE_TWO": "Choose between a weekly subscription or an individual order with a minimum purchase of €20.",
+    "FIRST_ORDER_TITLE": "Place your first order",
+    "WHY_KICKER": "Why SANZEN",
+    "WHY_TITLE": "A simple, flexible and carefully crafted experience",
+    "HOW_KICKER": "How it works",
+    "HOW_TITLE": "A quick summary to get started",
+    "HOW_TEXT": "The dedicated How it works page includes the full process in detail.",
+    "VALUES": {
+      "personalized": {
+        "TITLE": "Personalised menus",
+        "TEXT": "Adapted to real allergies, intolerances and nutritional preferences, and designed by our chefs specialised in nutrition and Asian cuisine."
+      },
+      "balanced": {
+        "TITLE": "Balanced dishes",
+        "TEXT": "Healthy Asian food with flavour and good nutritional balance."
+      },
+      "delivery": {
+        "TITLE": "Delivery by time slot",
+        "TEXT": "Receive your order in the time window that suits you best."
+      },
+      "payment": {
+        "TITLE": "Fast and simple payment",
+        "TEXT": "A clear and agile process designed to make repeat orders easy."
+      },
+      "sustainability": {
+        "TITLE": "Committed to the environment",
+        "TEXT": "We use recyclable containers and prioritise electric vehicles for delivery to reduce environmental impact."
+      }
+    },
+    "STEPS": {
+      "one": {
+        "TITLE": "Place your first order",
+        "TEXT": "Choose whether you want to start with an individual order or a weekly subscription."
+      },
+      "two": {
+        "TITLE": "Pick your dishes and sign in",
+        "TEXT": "Filter, add dishes to the cart and, when you go to payment, sign in or create your user account if you do not have one yet."
+      },
+      "three": {
+        "TITLE": "Confirm and manage your orders",
+        "TEXT": "Complete your profile if needed, confirm delivery and then you will be able to repeat, modify or renew your subscription faster."
+      }
+    },
+    "IMAGE_ALT": "Healthy Asian dish"
+  },
+  "MENU": {
+    "INDIVIDUAL_BANNER": "INDIVIDUAL ORDER (MINIMUM €20)",
+    "SEARCH_PLACEHOLDER": "Search dishes by name",
+    "SUBSCRIPTION_ACTION": "Manage subscription",
+    "RECOMMENDED_FOR_YOU": "Recommended for you",
+    "TOP_HEALTHY": "Top healthy",
+    "NO_RESULTS": "No dishes match the selected filters.",
+    "SELECTED_PLATES": "Selected dishes: {{count}}",
+    "TOTAL_ACCUMULATED": "Running total: {{total}}",
+    "SUBSCRIPTION_SAVINGS": "With a subscription you would save {{amount}}",
+    "FILTERS_TITLE": "Nutritional preferences",
+    "ALLERGEN_FILTER_TITLE": "Allergen filter",
+    "GOAL_TITLE": "Nutritional goal",
+    "COMPOSITION_TITLE": "Composition preference",
+    "WITHOUT_ALLERGEN": "Without {{allergen}}",
+    "WEIGHT_LOSS_RECOMMENDATION": "Recommendations adjusted to your weight loss goal and your saved preferences.",
+    "MUSCLE_RECOMMENDATION": "Recommendations adjusted to your muscle gain goal and your saved preferences.",
+    "GENERIC_RECOMMENDATION": "Automatic recommendations based on your allergens and composition preferences.",
+    "SELECTED_MODAL_TITLE": "Selected dishes",
+    "SELECTED_MODAL_COUNT": "{{count}} selected dishes",
+    "ACTIVE_FILTERS": {
+      "GOAL_LOSE_WEIGHT": "Lose weight",
+      "GOAL_MUSCLE": "Build muscle",
+      "TOP_HEALTHY": "Top healthy"
+    },
+    "BANNERS": {
+      "WITH_PREVIOUS": "Subscription active. This is your latest weekly selection. You can modify it here or renew it from Manage subscription. You currently have {{count}} dishes.",
+      "NEED_MORE": "Subscription active. Choose at least {{minimum}} dishes to create your weekly selection. You currently have {{count}}/{{minimum}}."
+    }
+  },
+  "LOGIN": {
+    "TITLE": "Sign in",
+    "SUBTITLE": "Enter your credentials to access SANZEN.",
+    "ENTER": "Sign in",
+    "ENTERING": "Signing in...",
+    "REGISTER_TITLE": "Create user",
+    "REGISTER_SUBTITLE": "This form creates a new user in the database without modifying existing ones.",
+    "REGISTER_BUTTON": "Create user",
+    "ERRORS": {
+      "REVIEW_FIELDS": "Check the highlighted fields.",
+      "INVALID_EMAIL": "Enter a valid email.",
+      "PASSWORD_MIN": "Password must contain at least 6 characters.",
+      "NAME_MIN": "Name must contain at least 2 characters.",
+      "WRONG_CREDENTIALS": "Incorrect credentials.",
+      "REGISTER_GENERIC": "The user could not be registered. Check whether the email already exists."
+    },
+    "PLACEHOLDERS": {
+      "EMAIL": "user@email.com",
+      "PASSWORD": "Password",
+      "REGISTER_NAME": "Full name",
+      "REGISTER_EMAIL": "new@email.com",
+      "REGISTER_PASSWORD": "Minimum 6 characters"
+    }
+  },
+  "PROFILE": {
+    "HERO_TITLE": "Your food profile",
+    "HERO_TEXT": "Manage the personal, nutritional and payment details of your account.",
+    "SESSION_ACTIVE": "Active session: {{name}} · {{email}}",
+    "ALLERGEN_NOTE": "They will be used as a reference for your personal filters.",
+    "GOAL_NOTE": "You can leave it unselected.",
+    "ADDRESS_NOTE": "It will be used as the default address during payment.",
+    "CARD_NOTE": "It will be reused automatically on the payment page.",
+    "FIELDS": {
+      "NAME": "Name",
+      "EMAIL": "Email",
+      "PASSWORD": "Password",
+      "ADDRESS_NAME": "Address name",
+      "STREET_NUMBER": "Street and number",
+      "CITY": "City",
+      "POSTAL_CODE": "Postal code",
+      "PROVINCE": "Province",
+      "PHONE": "Phone",
+      "INSTRUCTIONS": "Instructions",
+      "CARDHOLDER": "Cardholder name",
+      "CARD_NUMBER": "Card number",
+      "EXPIRY": "Expiry date",
+      "CVV": "CVV"
+    },
+    "PLACEHOLDERS": {
+      "NAME": "Your name",
+      "EMAIL": "you@email.com",
+      "PASSWORD": "Minimum 6 characters",
+      "ADDRESS_NAME": "Home",
+      "STREET_NUMBER": "Main Street 12",
+      "CITY": "London",
+      "POSTAL_CODE": "28001",
+      "PROVINCE": "Madrid",
+      "PHONE": "600123123",
+      "CARDHOLDER": "As it appears on the card",
+      "CARD_NUMBER": "1234 5678 9012 3456",
+      "EXPIRY": "MM/YY",
+      "CVV": "123"
+    },
+    "ERRORS": {
+      "NAME": "Name must contain at least 2 letters and cannot include numbers.",
+      "EMAIL": "Enter a valid email.",
+      "PASSWORD": "Password must contain at least 6 characters.",
+      "ADDRESS_NAME": "Address name must contain at least 2 characters.",
+      "STREET_NUMBER": "Enter a valid street and number.",
+      "CITY": "City must contain at least 2 letters and cannot include numbers.",
+      "POSTAL_CODE": "Postal code must contain 5 digits.",
+      "PROVINCE": "Province must contain at least 2 letters and cannot include numbers.",
+      "PHONE": "Phone must contain 9 digits.",
+      "CARDHOLDER": "Enter letters only in the cardholder name, exactly as it appears on the card.",
+      "CARD_NUMBER": "Enter a valid 16-digit card number.",
+      "EXPIRY": "Use MM/YY format and a non-expired date.",
+      "CVV": "CVV must contain exactly 3 digits."
+    }
+  },
+  "SUBSCRIPTION": {
+    "HERO_KICKER": "Weekly subscription",
+    "HERO_TITLE": "Your weekly SANZEN plan",
+    "HERO_TEXT": "Activate your subscription and then we will take you to the menu so you can choose a minimum of 5 dishes. From there you can add as many as you want.",
+    "STATUS_TITLE": "Subscription status",
+    "STATUS_ACTIVE": "Subscription active",
+    "STATUS_PAUSED": "Subscription paused",
+    "STATUS_HELP": "You can activate or pause it whenever you want.",
+    "DELIVERY_DAY_TITLE": "Delivery day",
+    "DELIVERY_DAY_LABEL": "Weekly delivery day",
+    "CURRENT_SELECTION_TITLE": "Your current selection",
+    "CURRENT_SELECTION_COMPLETE": "This is the selection that will be renewed weekly. You can review it here or go to the menu to modify it before renewing.",
+    "CURRENT_SELECTION_INCOMPLETE": "Your weekly selection is not complete yet. Go to the menu to reach the minimum of {{minimum}} dishes and activate the subscription correctly.",
+    "EMPTY_SELECTION": "There is no saved weekly selection yet. Go to the menu to choose your dishes and complete your weekly plan.",
+    "WHAT_HAPPENS_TITLE": "What happens when you save",
+    "MINIMUM_ORDER": "Minimum order",
+    "SUBSCRIPTION_DISCOUNT": "Subscription discount",
+    "NEXT_DELIVERY": "Next delivery",
+    "STATE": "Status",
+    "ACTIVE": "Active",
+    "PAUSED": "Paused",
+    "UNITS_AND_CATEGORY": "{{count}} units · {{category}}",
+    "SAVE_NOTE": "When you save the plan we will take you to the menu. There you must choose at least {{minimum}} dishes and a {{discount}}% discount will be applied in the cart.",
+    "WEEKLY_RENEWAL_NOTE": "This renewal manually creates the next weekly order with the dishes saved in your subscription and moves the next delivery forward by seven days.",
+    "TOASTS": {
+      "NEED_ACTIVE_AND_COMPLETE": "You need an active subscription with at least 5 dishes to run the renewal.",
+      "RENEWAL_SUCCESS": "Weekly order {{orderNumber}} created successfully.",
+      "RENEWAL_ERROR": "The weekly renewal could not be simulated.",
+      "INCOMPLETE_EMPTY": "Activate the subscription and choose at least {{minimum}} dishes in the menu.",
+      "INCOMPLETE_PARTIAL": "You still need {{remaining}} dishes to complete the subscription. Continue in the menu to finish it."
+    }
+  },
+  "SUMMARY": {
+    "SUBSCRIPTION_INCOMPLETE": "You must choose at least {{plan}} units for your subscription. You currently have {{selected}}/{{plan}} and still need {{remaining}}.",
+    "SUBSCRIPTION_SUBTOTAL": "Subscription subtotal: {{amount}}",
+    "SUBSCRIPTION_DISCOUNT": "Subscription discount ({{percent}}%): -{{amount}}",
+    "SUBSCRIPTION_TOTAL": "Subscription total: {{amount}}",
+    "EXTRA_DESSERTS": "Extra desserts: {{amount}}",
+    "ORIGINAL_SUBTOTAL": "Original subtotal: {{amount}}",
+    "TOTAL": "Total: {{amount}}",
+    "MIN_ORDER_MISSING": "Minimum order is €20. You still need {{amount}} to continue.",
+    "ADD_DESSERTS": "Add desserts to the order",
+    "EMPTY_CART": "The cart is empty."
+  },
+  "PAYMENT": {
+    "ORDER_SUMMARY": "Order summary",
+    "EXPECTED_DELIVERY": "Expected delivery: {{value}}",
+    "DELIVERY_ADDRESS": "Delivery address",
+    "COMPLETE_PROFILE_FIRST": "Complete your profile first to have a delivery address available.",
+    "TIME_SLOT_TITLE": "Delivery time slot",
+    "TIME_SLOT_LABEL": "Time slot",
+    "WEEKLY_DELIVERY_DAY_TITLE": "Weekly delivery day",
+    "WEEKLY_DELIVERY_DAY_LABEL": "Your subscription day",
+    "PAYMENT_METHOD": "Payment method",
+    "CARDHOLDER": "Cardholder name",
+    "CARD_NUMBER": "Card number",
+    "EXPIRY": "Expiry date",
+    "ERRORS": {
+      "CARDHOLDER": "Enter letters only in the cardholder name, exactly as it appears on the card.",
+      "CARD_NUMBER": "Enter a 16-digit card number.",
+      "EXPIRY": "Use MM/YY format and a non-expired date.",
+      "CVV": "CVV must contain exactly 3 digits."
+    },
+    "INSTRUCTIONS_PREFIX": "Instructions: {{value}}"
+  },
+  "CONFIRMATION": {
+    "HERO_KICKER": "Payment completed",
+    "HERO_TITLE": "Your order is already on the way",
+    "HERO_TEXT": "The payment simulation was completed successfully and the order has been registered.",
+    "INSTRUCTIONS_PREFIX": "Instructions: {{value}}"
+  },
+  "ORDERS": {
+    "EMPTY_TITLE": "You do not have any orders yet",
+    "EMPTY_TEXT": "When you confirm your first payment, the full history will appear here.",
+    "INSTRUCTIONS_PREFIX": "Instructions: {{value}}"
+  },
+  "DETAIL": {
+    "INGREDIENTS": "Ingredients",
+    "SIDE_DISHES": "Side dishes",
+    "ALLERGENS": "Allergens",
+    "NO_ALLERGENS": "No highlighted allergens",
+    "MACRONUTRIENTS": "Macronutrients"
+  },
+  "HOW": {
+    "HERO_BADGE": "First order, registered users and renewal",
+    "HERO_TITLE": "How SANZEN works",
+    "HERO_TEXT": "SANZEN combines the first order, nutritional profile, individual order, weekly subscription, repeat orders and follow-up in a single flow.",
+    "STEPS_LABEL": "7 steps",
+    "STEPS_TITLE": "How your order works from start to finish",
+    "STEPS": {
+      "one": {
+        "TITLE": "Place your first order",
+        "TEXT": "From Home you can tap Place your first order and choose whether you want to start with an individual order or a weekly subscription."
+      },
+      "two": {
+        "TITLE": "Filter and choose dishes",
+        "TEXT": "In the menu you can apply filters by allergens, nutritional goal and composition preferences, see recommendations and add dishes to the cart."
+      },
+      "three": {
+        "TITLE": "Sign in or create your user",
+        "TEXT": "You can start the process as a guest. When going to payment, SANZEN will ask you to sign in or create a user to save the order."
+      },
+      "four": {
+        "TITLE": "Complete your profile if needed",
+        "TEXT": "If you are new, or if data is missing, you will complete your food preferences, address and card. If your profile is already complete, you will go straight to the last step of the order."
+      },
+      "five": {
+        "TITLE": "Confirm delivery",
+        "TEXT": "The individual order requires a minimum of €20. The weekly subscription requires at least 5 dishes. The delivery date is calculated taking previous orders into account."
+      },
+      "six": {
+        "TITLE": "Place repeat orders faster",
+        "TEXT": "If you already have an account and a complete profile, on your next orders you will only need to sign in, review the cart and confirm payment."
+      },
+      "seven": {
+        "TITLE": "Manage and renew your subscription",
+        "TEXT": "If you have an active subscription, SANZEN keeps your latest weekly selection. From Manage subscription you can review it, modify it in the menu or manually launch the weekly renewal."
+      }
+    },
+    "VISUALS": {
+      "one": {
+        "TITLE": "Start from Home",
+        "TEXT": "The landing page guides you with two clear access points inside Place your first order: Weekly subscription or Individual order."
+      },
+      "two": {
+        "TITLE": "New user and existing user",
+        "TEXT": "If you already have an account, the process is shorter. If you are new, SANZEN uses your first order to create the user and complete the profile with your dietary and payment details."
+      },
+      "three": {
+        "TITLE": "Repeat orders and renewal",
+        "TEXT": "Repeat orders reuse your saved profile. If you have an active subscription, you can review your current selection, modify it or renew it manually from Manage subscription."
+      }
+    }
+  }
+}

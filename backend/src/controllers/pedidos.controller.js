@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const { obtenerUserIdSeguro } = require('../middleware/auth');
 const PEDIDO_MINIMO_INDIVIDUAL = 20;
+const ESTADO_PEDIDO_CONFIRMADO = 'confirmado';
 const DESCUENTO_SUSCRIPCION_POR_PLAN = Object.freeze({
   5: 20
 });
@@ -101,6 +102,22 @@ function construirLineaDireccion(direccion) {
   ].filter(Boolean).join(', ');
 }
 
+function generarPublicIdPedido(userId, esSuscripcion) {
+  const prefijo = esSuscripcion ? 'sub' : 'ped';
+  const sufijo = Math.floor(1000 + Math.random() * 9000);
+  return `${prefijo}-${userId}-${Date.now()}-${sufijo}`;
+}
+
+function generarNumeroPedido() {
+  const fecha = new Date();
+  const marca = `${fecha.getFullYear()}${String(fecha.getMonth() + 1).padStart(2, '0')}${String(
+    fecha.getDate()
+  ).padStart(2, '0')}`;
+  const sufijo = Math.floor(1000 + Math.random() * 9000);
+
+  return `SZ-${marca}-${sufijo}`;
+}
+
 async function getPedidos(req, res) {
   try {
     const userIdResult = obtenerUserIdSeguro(req.query.userId, req.authUserId);
@@ -118,6 +135,7 @@ async function getPedidos(req, res) {
   }
 }
 
+
 async function createPedido(req, res) {
   const connection = await pool.getConnection();
 
@@ -131,30 +149,30 @@ async function createPedido(req, res) {
     }
     const userId = userIdResult.userId;
 
-    if (!pedido || !pedido.numeroPedido || !Array.isArray(pedido.items) || pedido.items.length === 0) {
+    if (!pedido || !Array.isArray(pedido.items) || pedido.items.length === 0) {
       res.status(400).json({ message: 'El pedido no tiene el formato esperado.' });
       return;
     }
 
     if (!METODOS_PAGO_VALIDOS.has(pedido.metodoPago)) {
-      res.status(400).json({ message: 'El método de pago no es válido.' });
+      res.status(400).json({ message: 'El metodo de pago no es valido.' });
       return;
     }
 
     if (!textoValido(pedido.franjaEntrega, 3)) {
-      res.status(400).json({ message: 'La franja de entrega no es válida.' });
+      res.status(400).json({ message: 'La franja de entrega no es valida.' });
       return;
     }
 
     const fechaEntregaProgramadaBase = obtenerFechaValida(
       pedido.fechaEntregaProgramada,
-      'La fecha de entrega programada no es válida.'
+      'La fecha de entrega programada no es valida.'
     );
 
     const platosIds = [...new Set(pedido.items.map(item => Number(item?.platoId)).filter(id => Number.isInteger(id) && id > 0))];
 
     if (pedido.items.some(item => !Number.isInteger(Number(item?.platoId)) || Number(item?.platoId) <= 0 || !esCantidadValida(item?.cantidad))) {
-      res.status(400).json({ message: 'El pedido contiene líneas no válidas.' });
+      res.status(400).json({ message: 'El pedido contiene lineas no validas.' });
       return;
     }
 
@@ -172,7 +190,7 @@ async function createPedido(req, res) {
     );
 
     if (direccionRows.length === 0 || !direccionGuardadaValida(direccionRows[0])) {
-      throw crearErrorHttp(400, 'Necesitas una dirección principal válida para confirmar el pedido.');
+      throw crearErrorHttp(400, 'Necesitas una direccion principal valida para confirmar el pedido.');
     }
 
     const direccionId = direccionRows[0].id;
@@ -191,7 +209,7 @@ async function createPedido(req, res) {
       );
 
       if (tarjetaRows.length === 0 || !tarjetaGuardadaValida(tarjetaRows[0])) {
-        throw crearErrorHttp(400, 'Necesitas una tarjeta principal válida para pagar con tarjeta.');
+        throw crearErrorHttp(400, 'Necesitas una tarjeta principal valida para pagar con tarjeta.');
       }
 
       tarjetaId = tarjetaRows[0].id;
@@ -207,7 +225,7 @@ async function createPedido(req, res) {
     );
 
     if (platosRows.length !== platosIds.length) {
-      throw crearErrorHttp(400, 'El pedido contiene platos no válidos o no disponibles.');
+      throw crearErrorHttp(400, 'El pedido contiene platos no validos o no disponibles.');
     }
 
     const precioPorPlatoId = new Map(
@@ -219,7 +237,7 @@ async function createPedido(req, res) {
       const precioUnitario = precioPorPlatoId.get(platoId);
 
       if (typeof precioUnitario !== 'number') {
-        throw crearErrorHttp(400, 'El pedido contiene platos no válidos o no disponibles.');
+        throw crearErrorHttp(400, 'El pedido contiene platos no validos o no disponibles.');
       }
 
       return {
@@ -235,16 +253,23 @@ async function createPedido(req, res) {
     const subtotalCalculado = Number(
       itemsNormalizados.reduce((total, item) => total + item.subtotal, 0).toFixed(2)
     );
+    const subtotalSuscripcionCalculado = Number(
+      itemsNormalizados
+        .filter(item => item.tipoLinea === 'suscripcion')
+        .reduce((total, item) => total + item.subtotal, 0)
+        .toFixed(2)
+    );
     let totalCalculado = subtotalCalculado;
+    const esSuscripcion = pedido.esSuscripcion === true || pedido.esSuscripcion === 1 || pedido.esSuscripcion === '1' || pedido.esSuscripcion === 'true';
 
-    if (!pedido.esSuscripcion && totalCalculado < PEDIDO_MINIMO_INDIVIDUAL) {
-      throw crearErrorHttp(400, 'El pedido individual debe alcanzar un mínimo de 20 EUR.');
+    if (!esSuscripcion && totalCalculado < PEDIDO_MINIMO_INDIVIDUAL) {
+      throw crearErrorHttp(400, 'El pedido individual debe alcanzar un minimo de 20 EUR.');
     }
 
     let suscripcionId = null;
     let fechaEntregaProgramada = new Date(fechaEntregaProgramadaBase);
 
-    if (pedido.esSuscripcion) {
+    if (esSuscripcion) {
       const [suscripcionRows] = await connection.query(
         `
         SELECT id, dia_entrega, plan_semanal
@@ -259,11 +284,11 @@ async function createPedido(req, res) {
       suscripcionId = suscripcionRows.length > 0 ? suscripcionRows[0].id : null;
 
       if (!suscripcionId) {
-        throw crearErrorHttp(400, 'No existe una suscripción activa válida para este pedido.');
+        throw crearErrorHttp(400, 'No existe una suscripcion activa valida para este pedido.');
       }
 
       const descuentoPorcentaje = obtenerDescuentoPorcentajeSuscripcion(suscripcionRows[0].plan_semanal);
-      const descuentoAplicado = Number((subtotalCalculado * (descuentoPorcentaje / 100)).toFixed(2));
+      const descuentoAplicado = Number((subtotalSuscripcionCalculado * (descuentoPorcentaje / 100)).toFixed(2));
       totalCalculado = Number((subtotalCalculado - descuentoAplicado).toFixed(2));
 
       const totalPlatosSuscripcion = itemsNormalizados
@@ -271,7 +296,7 @@ async function createPedido(req, res) {
         .reduce((total, item) => total + item.cantidad, 0);
 
       if (totalPlatosSuscripcion < 5) {
-        throw crearErrorHttp(400, 'El pedido de suscripción debe incluir al menos 5 platos de suscripción.');
+        throw crearErrorHttp(400, 'El pedido de suscripcion debe incluir al menos 5 platos de suscripcion.');
       }
 
       const [[ultimoPedidoCliente]] = await connection.query(
@@ -296,6 +321,10 @@ async function createPedido(req, res) {
       }
     }
 
+    const publicId = generarPublicIdPedido(userId, esSuscripcion);
+    const numeroPedido = generarNumeroPedido();
+    const fechaCreacion = new Date();
+
     const [pedidoResult] = await connection.query(
       `
       INSERT INTO pedidos (
@@ -318,19 +347,19 @@ async function createPedido(req, res) {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
-        pedido.id,
+        publicId,
         userId,
         direccionId,
         tarjetaId,
         suscripcionId,
-        pedido.numeroPedido,
-        formatearFechaMysql(pedido.fechaCreacion),
+        numeroPedido,
+        formatearFechaMysql(fechaCreacion.toISOString()),
         formatearFechaMysql(fechaEntregaProgramada.toISOString()),
         pedido.franjaEntrega,
         pedido.metodoPago,
-        pedido.estado,
+        ESTADO_PEDIDO_CONFIRMADO,
         totalCalculado,
-        pedido.esSuscripcion,
+        esSuscripcion,
         direccionRows[0].nombre ?? '',
         construirLineaDireccion(direccionRows[0]),
         direccionRows[0].instrucciones ?? ''
@@ -360,7 +389,7 @@ async function createPedido(req, res) {
       );
     }
 
-    if (pedido.esSuscripcion && suscripcionId && !Number.isNaN(fechaEntregaProgramada.getTime())) {
+    if (esSuscripcion && suscripcionId && !Number.isNaN(fechaEntregaProgramada.getTime())) {
       await sincronizarPlatosSuscripcionDesdePedido(connection, suscripcionId, pedidoResult.insertId);
 
       const siguienteEntrega = new Date(fechaEntregaProgramada);

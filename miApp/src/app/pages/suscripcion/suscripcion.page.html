@@ -1,31 +1,33 @@
-﻿<ion-header>
+<ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/perfil"></ion-back-button>
     </ion-buttons>
     <ion-title>
-      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+      <img class="app-header-logo" src="assets/img/letrasSanzen.png" alt="SANZEN" />
     </ion-title>
+    <ion-buttons slot="end">
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="suscripcion-content">
   <div class="suscripcion-shell">
     <section class="hero">
-      <span class="hero-kicker">Suscripción semanal</span>
-      <h1>Tu plan semanal SANZEN</h1>
-      <p>Activa tu suscripción y después te llevaremos al menú para que elijas un mínimo de 5 platos. A partir de ahí puedes añadir tantos como quieras.</p>
+      <span class="hero-kicker">{{ 'SUBSCRIPTION.HERO_KICKER' | translate }}</span>
+      <h1>{{ 'SUBSCRIPTION.HERO_TITLE' | translate }}</h1>
+      <p>{{ 'SUBSCRIPTION.HERO_TEXT' | translate }}</p>
     </section>
 
     <ion-card class="suscripcion-card">
       <ion-card-header>
-        <ion-card-title>Estado de la suscripción</ion-card-title>
+        <ion-card-title>{{ 'SUBSCRIPTION.STATUS_TITLE' | translate }}</ion-card-title>
       </ion-card-header>
       <ion-card-content>
         <ion-item lines="none">
           <ion-label>
-            <h2>{{ suscripcion.activa ? 'Suscripción activa' : 'Suscripción pausada' }}</h2>
-            <p>Puedes activarla o pausarla cuando quieras.</p>
+            <h2>{{ suscripcion.activa ? ('SUBSCRIPTION.STATUS_ACTIVE' | translate) : ('SUBSCRIPTION.STATUS_PAUSED' | translate) }}</h2>
+            <p>{{ 'SUBSCRIPTION.STATUS_HELP' | translate }}</p>
           </ion-label>
           <ion-toggle
             slot="end"
@@ -38,18 +40,18 @@
 
     <ion-card class="suscripcion-card">
       <ion-card-header>
-        <ion-card-title>Día de entrega</ion-card-title>
+        <ion-card-title>{{ 'SUBSCRIPTION.DELIVERY_DAY_TITLE' | translate }}</ion-card-title>
       </ion-card-header>
       <ion-card-content>
         <ion-item lines="none">
-          <ion-label>Día semanal de entrega</ion-label>
+          <ion-label>{{ 'SUBSCRIPTION.DELIVERY_DAY_LABEL' | translate }}</ion-label>
           <ion-select
             slot="end"
             interface="popover"
             [value]="suscripcion.diaEntrega"
             (ionChange)="onDiaEntregaChange($event.detail.value)">
-            @for (dia of diasEntrega; track dia.valor) {
-              <ion-select-option [value]="dia.valor">{{ dia.etiqueta }}</ion-select-option>
+            @for (dia of diasEntrega; track dia) {
+              <ion-select-option [value]="dia">{{ obtenerEtiquetaDia(dia) }}</ion-select-option>
             }
           </ion-select>
         </ion-item>
@@ -58,12 +60,16 @@
 
     <ion-card class="suscripcion-card seleccion-card">
       <ion-card-header>
-        <ion-card-title>Tu selección actual</ion-card-title>
+        <ion-card-title>{{ 'SUBSCRIPTION.CURRENT_SELECTION_TITLE' | translate }}</ion-card-title>
       </ion-card-header>
       <ion-card-content>
         @if (tieneSeleccionGuardada()) {
           <p class="seleccion-resumen">
-            Esta es la selección que se renovará semanalmente. Puedes revisarla aquí o ir al menú para modificarla antes de renovar.
+            @if (seleccionCompleta()) {
+              {{ 'SUBSCRIPTION.CURRENT_SELECTION_COMPLETE' | translate }}
+            } @else {
+              {{ 'SUBSCRIPTION.CURRENT_SELECTION_INCOMPLETE' | translate:{ minimum: minimoPlatosSuscripcion } }}
+            }
           </p>
 
           <ion-list class="seleccion-list">
@@ -75,7 +81,7 @@
 
                 <ion-label>
                   <h3>{{ item.plato.name }}</h3>
-                  <p>{{ item.cantidad }} uds · {{ item.plato.category }}</p>
+                <p>{{ 'SUBSCRIPTION.UNITS_AND_CATEGORY' | translate:{ count: item.cantidad, category: obtenerEtiquetaCategoria(item.plato.category) } }}</p>
                 </ion-label>
 
                 <ion-note slot="end">{{ (item.plato.price * item.cantidad) | number:'1.2-2' }} €</ion-note>
@@ -85,15 +91,15 @@
 
           <div class="seleccion-totales">
             <div>
-              <span class="resumen-label">Subtotal</span>
+              <span class="resumen-label">{{ 'COMMON.LABELS.SUBTOTAL' | translate }}</span>
               <strong>{{ obtenerSubtotalSeleccionActual() | number:'1.2-2' }} €</strong>
             </div>
             <div>
-              <span class="resumen-label">Descuento</span>
+              <span class="resumen-label">{{ 'COMMON.LABELS.DISCOUNT' | translate }}</span>
               <strong>-{{ obtenerDescuentoSeleccionActual() | number:'1.2-2' }} €</strong>
             </div>
             <div>
-              <span class="resumen-label">Total estimado</span>
+              <span class="resumen-label">{{ 'COMMON.LABELS.TOTAL' | translate }}</span>
               <strong>{{ obtenerTotalSeleccionActual() | number:'1.2-2' }} €</strong>
             </div>
           </div>
@@ -103,57 +109,63 @@
             fill="outline"
             class="modificar-button"
             (click)="irAModificarSeleccion()">
-            Modificar selección
+            {{ obtenerTextoBotonSeleccion() }}
           </ion-button>
         } @else {
           <ion-text color="medium">
             <p class="nota">
-              Aún no hay una selección semanal guardada. Activa tu suscripción, crea tu primer pedido y después podrás revisarla aquí antes de renovarla.
+              {{ 'SUBSCRIPTION.EMPTY_SELECTION' | translate }}
             </p>
           </ion-text>
+
+          <ion-button
+            expand="block"
+            fill="outline"
+            class="modificar-button"
+            (click)="irAModificarSeleccion()">
+            {{ obtenerTextoBotonSeleccion() }}
+          </ion-button>
         }
       </ion-card-content>
     </ion-card>
 
     <ion-card class="suscripcion-card resumen-card">
       <ion-card-header>
-        <ion-card-title>Qué ocurrirá al guardar</ion-card-title>
+        <ion-card-title>{{ 'SUBSCRIPTION.WHAT_HAPPENS_TITLE' | translate }}</ion-card-title>
       </ion-card-header>
       <ion-card-content>
         <div class="resumen-grid">
           <div>
-            <span class="resumen-label">Pedido mínimo</span>
+            <span class="resumen-label">{{ 'SUBSCRIPTION.MINIMUM_ORDER' | translate }}</span>
             <strong>{{ minimoPlatosSuscripcion }} platos</strong>
           </div>
           <div>
-            <span class="resumen-label">Descuento de suscripción</span>
+            <span class="resumen-label">{{ 'SUBSCRIPTION.SUBSCRIPTION_DISCOUNT' | translate }}</span>
             <strong>{{ obtenerDescuentoPlan() }}%</strong>
           </div>
           <div>
-            <span class="resumen-label">Próxima entrega</span>
+            <span class="resumen-label">{{ 'SUBSCRIPTION.NEXT_DELIVERY' | translate }}</span>
             <strong>{{ obtenerProximaEntregaResumen() }}</strong>
           </div>
           <div>
-            <span class="resumen-label">Estado</span>
+            <span class="resumen-label">{{ 'SUBSCRIPTION.STATE' | translate }}</span>
             <strong
               class="estado-badge"
               [class.estado-badge-activa]="suscripcion.activa"
               [class.estado-badge-pausada]="!suscripcion.activa">
-              {{ suscripcion.activa ? 'Activa' : 'Pausada' }}
+              {{ suscripcion.activa ? ('SUBSCRIPTION.ACTIVE' | translate) : ('SUBSCRIPTION.PAUSED' | translate) }}
             </strong>
           </div>
         </div>
 
         <ion-text color="medium">
           <p class="nota">
-            Al guardar el plan te llevaremos al menú. Allí tendrás que escoger al menos
-            {{ minimoPlatosSuscripcion }} platos y se aplicará un descuento del
-            {{ obtenerDescuentoPlan() }}% en el carrito.
+            {{ 'SUBSCRIPTION.SAVE_NOTE' | translate:{ minimum: minimoPlatosSuscripcion, discount: obtenerDescuentoPlan() } }}
           </p>
         </ion-text>
 
         <ion-button expand="block" class="guardar-button" (click)="guardarSuscripcion()">
-          Guardar plan semanal
+          {{ 'COMMON.ACTIONS.SAVE_WEEKLY_PLAN' | translate }}
         </ion-button>
 
         <ion-button
@@ -162,16 +174,15 @@
           class="simular-button"
           [disabled]="!puedeSimularRenovacion()"
           (click)="simularRenovacionSemanal()">
-          Renovación semanal
+          {{ 'COMMON.ACTIONS.WEEKLY_RENEWAL' | translate }}
         </ion-button>
 
         <ion-text color="medium">
           <p class="nota nota-secundaria">
-            Esta renovación genera manualmente el próximo pedido semanal con los platos guardados en tu suscripción y avanza la siguiente entrega siete días.
+            {{ 'SUBSCRIPTION.WEEKLY_RENEWAL_NOTE' | translate }}
           </p>
         </ion-text>
       </ion-card-content>
     </ion-card>
   </div>
 </ion-content>
-

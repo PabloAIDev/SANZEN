@@ -1,11 +1,13 @@
-﻿<ion-header>
+<ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/perfil"></ion-back-button>
     </ion-buttons>
     <ion-title>
-      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+      <img class="app-header-logo" src="assets/img/letrasSanzen.png" alt="SANZEN" />
     </ion-title>
+    <ion-buttons slot="end">
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -13,8 +15,8 @@
   @if (pedidos.length === 0) {
     <ion-card class="estado-vacio-card">
       <ion-card-content>
-        <h2>Aún no tienes pedidos</h2>
-        <p>Cuando confirmes tu primer pago, aquí aparecerá el historial completo.</p>
+        <h2>{{ 'ORDERS.EMPTY_TITLE' | translate }}</h2>
+        <p>{{ 'ORDERS.EMPTY_TEXT' | translate }}</p>
       </ion-card-content>
     </ion-card>
   } @else {
@@ -23,7 +25,7 @@
         <ion-card-header>
           <div class="pedido-top">
             <div>
-              <ion-note>Número de pedido</ion-note>
+              <ion-note>{{ 'COMMON.LABELS.ORDER_NUMBER' | translate }}</ion-note>
               <ion-card-title>{{ pedido.numeroPedido }}</ion-card-title>
             </div>
 
@@ -36,27 +38,27 @@
         <ion-card-content>
           <div class="pedido-meta-grid">
             <div class="pedido-meta-item">
-              <span class="meta-label">Fecha</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.DATE' | translate }}</span>
               <strong>{{ formatearFecha(pedido.fechaCreacion) }}</strong>
             </div>
 
             <div class="pedido-meta-item">
-              <span class="meta-label">Entrega</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.DELIVERY' | translate }}</span>
               <strong>{{ formatearFechaEntrega(pedido.fechaEntregaProgramada, pedido.franjaEntrega) }}</strong>
             </div>
 
             <div class="pedido-meta-item">
-              <span class="meta-label">Total</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.TOTAL' | translate }}</span>
               <strong>{{ pedido.total | currency:'EUR' }}</strong>
             </div>
 
             <div class="pedido-meta-item">
-              <span class="meta-label">Franja</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.TIMESLOT' | translate }}</span>
               <strong>{{ pedido.franjaEntrega }}</strong>
             </div>
 
             <div class="pedido-meta-item">
-              <span class="meta-label">Pago</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.PAYMENT' | translate }}</span>
               <strong>{{ obtenerEtiquetaMetodoPago(pedido.metodoPago) }}</strong>
             </div>
           </div>
@@ -68,11 +70,11 @@
           </div>
 
           <div class="direccion-box">
-            <span class="meta-label">Dirección de entrega</span>
+            <span class="meta-label">{{ 'COMMON.LABELS.DELIVERY_ADDRESS' | translate }}</span>
             <strong>{{ pedido.direccionEntrega.nombre }}</strong>
             <p>{{ pedido.direccionEntrega.linea }}</p>
             @if (pedido.direccionEntrega.instrucciones !== '') {
-              <p>Instrucciones: {{ pedido.direccionEntrega.instrucciones }}</p>
+              <p>{{ 'ORDERS.INSTRUCTIONS_PREFIX' | translate:{ value: pedido.direccionEntrega.instrucciones } }}</p>
             }
           </div>
 
@@ -80,11 +82,11 @@
             @for (item of pedido.items; track item.platoId) {
               <ion-item class="pedido-item">
                 <ion-thumbnail slot="start">
-                  <img [src]="item.imagen" [alt]="item.nombre" />
+                  <img [src]="item.imagen" [alt]="obtenerNombrePlato(item.platoId, item.nombre)" />
                 </ion-thumbnail>
 
                 <ion-label>
-                  <h3>{{ item.nombre }}</h3>
+                  <h3>{{ obtenerNombrePlato(item.platoId, item.nombre) }}</h3>
                   <p>{{ item.cantidad }} x {{ item.precioUnitario | currency:'EUR' }}</p>
                 </ion-label>
 
@@ -97,4 +99,3 @@
     }
   }
 </ion-content>
-

@@ -28,7 +28,8 @@ import {
 import {
   AssistantAction,
   AssistantHistoryEntry,
-  AssistantMessage
+  AssistantMessage,
+  AssistantResponseSource
 } from '../../models/assistant.model';
 import { AssistantService } from '../../services/assistant.service';
 import { UserSessionService } from '../../services/user-session.service';
@@ -62,7 +63,7 @@ export class AssistantComponent implements OnInit, OnDestroy {
   mensajeActual = '';
   pantallaActual = 'inicio';
   mensajes: AssistantMessage[] = [];
-  ultimoOrigenRespuesta: 'openai' | 'fallback' | null = null;
+  ultimoOrigenRespuesta: AssistantResponseSource | null = null;
 
   private routerSubscription?: Subscription;
   private sessionSubscription?: Subscription;
@@ -167,6 +168,10 @@ export class AssistantComponent implements OnInit, OnDestroy {
   }
 
   async ejecutarAccion(action: AssistantAction): Promise<void> {
+    if (!this.esAccionNavegacionValida(action)) {
+      return;
+    }
+
     this.abierto = false;
     await this.router.navigateByUrl(action.target);
   }
@@ -180,6 +185,10 @@ export class AssistantComponent implements OnInit, OnDestroy {
   obtenerEtiquetaOrigen(): string {
     if (this.ultimoOrigenRespuesta === 'openai') {
       return 'Motor: OpenAI';
+    }
+
+    if (this.ultimoOrigenRespuesta === 'rules') {
+      return 'Motor: reglas';
     }
 
     if (this.ultimoOrigenRespuesta === 'fallback') {
@@ -229,6 +238,26 @@ export class AssistantComponent implements OnInit, OnDestroy {
     }
 
     this.pantallaActual = path || 'inicio';
+  }
+
+  private esAccionNavegacionValida(action: AssistantAction): boolean {
+    if (!action || action.type !== 'navigate' || typeof action.target !== 'string') {
+      return false;
+    }
+
+    const target = action.target.trim();
+    return [
+      '/inicio',
+      '/menu',
+      '/resumen',
+      '/pago',
+      '/perfil',
+      '/suscripcion',
+      '/mis-pedidos',
+      '/como-funciona',
+      '/login',
+      '/menu?subscriptionSelection=1'
+    ].includes(target);
   }
 
   private sembrarMensajeInicial(): void {

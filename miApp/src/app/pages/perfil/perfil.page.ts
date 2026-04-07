@@ -21,6 +21,7 @@ import {
   IonToolbar
 } from '@ionic/angular/standalone';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   DireccionPrincipal,
   ObjetivoNutricional,
@@ -35,13 +36,12 @@ import { SessionUser } from '../../models/session-user.model';
 import { FirstOrderService } from '../../services/first-order.service';
 
 interface AlergenoOption {
-  nombre: string;
+  valor: string;
   icono: string;
 }
 
 interface PreferenciaOption {
   valor: PreferenciaComposicion;
-  etiqueta: string;
 }
 
 @Component({
@@ -68,7 +68,8 @@ interface PreferenciaOption {
     IonRadioGroup,
     IonRadio,
     IonButton,
-    IonNote
+    IonNote,
+    TranslateModule
   ]
 })
 export class PerfilPage implements OnInit {
@@ -77,26 +78,26 @@ export class PerfilPage implements OnInit {
   intentoGuardar = false;
 
   readonly alergenosDisponibles: AlergenoOption[] = [
-    { nombre: 'Crustáceos', icono: 'assets/icons/alergenos/crustaceos.png' },
-    { nombre: 'Frutos secos', icono: 'assets/icons/alergenos/frutos-secos.png' },
-    { nombre: 'Gluten', icono: 'assets/icons/alergenos/gluten.png' },
-    { nombre: 'Huevo', icono: 'assets/icons/alergenos/huevo.png' },
-    { nombre: 'Lácteos', icono: 'assets/icons/alergenos/lacteos.png' },
-    { nombre: 'Legumbres', icono: 'assets/icons/alergenos/legumbres.png' },
-    { nombre: 'Pescado', icono: 'assets/icons/alergenos/pescado.png' },
-    { nombre: 'Sésamo', icono: 'assets/icons/alergenos/sesamo.png' },
-    { nombre: 'Soja', icono: 'assets/icons/alergenos/soja.png' }
+    { valor: 'Crustáceos', icono: 'assets/icons/alergenos/crustaceos.png' },
+    { valor: 'Frutos secos', icono: 'assets/icons/alergenos/frutos-secos.png' },
+    { valor: 'Gluten', icono: 'assets/icons/alergenos/gluten.png' },
+    { valor: 'Huevo', icono: 'assets/icons/alergenos/huevo.png' },
+    { valor: 'Lácteos', icono: 'assets/icons/alergenos/lacteos.png' },
+    { valor: 'Legumbres', icono: 'assets/icons/alergenos/legumbres.png' },
+    { valor: 'Pescado', icono: 'assets/icons/alergenos/pescado.png' },
+    { valor: 'Sésamo', icono: 'assets/icons/alergenos/sesamo.png' },
+    { valor: 'Soja', icono: 'assets/icons/alergenos/soja.png' }
   ];
 
-  readonly objetivosNutricionales: { valor: Exclude<ObjetivoNutricional, null>; etiqueta: string }[] = [
-    { valor: 'perder-peso', etiqueta: 'Perder peso' },
-    { valor: 'masa-muscular', etiqueta: 'Masa muscular' }
+  readonly objetivosNutricionales: { valor: Exclude<ObjetivoNutricional, null> }[] = [
+    { valor: 'perder-peso' },
+    { valor: 'masa-muscular' }
   ];
 
   readonly preferenciasDisponibles: PreferenciaOption[] = [
-    { valor: 'ricos-proteina', etiqueta: 'Ricos en proteína' },
-    { valor: 'bajos-grasas', etiqueta: 'Bajos en grasas' },
-    { valor: 'bajos-carbohidratos', etiqueta: 'Bajos en carbohidratos' }
+    { valor: 'ricos-proteina' },
+    { valor: 'bajos-grasas' },
+    { valor: 'bajos-carbohidratos' }
   ];
 
   constructor(
@@ -105,7 +106,8 @@ export class PerfilPage implements OnInit {
     private userSessionService: UserSessionService,
     private firstOrderService: FirstOrderService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private translateService: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -190,20 +192,6 @@ export class PerfilPage implements OnInit {
     return 'off';
   }
 
-  irASuscripcion(): void {
-    this.router.navigateByUrl('/suscripcion');
-  }
-
-  irAMisPedidos(): void {
-    this.router.navigateByUrl('/mis-pedidos');
-  }
-
-  cambiarUsuario(): void {
-    this.carritoService.reiniciarCarrito();
-    this.userSessionService.cerrarSesion();
-    this.router.navigateByUrl('/login');
-  }
-
   restablecerPreferencias(): void {
     const perfilRestablecido = this.profileService.restablecerPreferenciasNutricionales();
 
@@ -248,6 +236,18 @@ export class PerfilPage implements OnInit {
     this.perfil.preferenciasComposicion = this.perfil.preferenciasComposicion.filter(
       preferencia => preferencia !== valor
     );
+  }
+
+  obtenerEtiquetaAlergeno(alergeno: string): string {
+    return this.translateService.instant(`COMMON.ALLERGENS.${alergeno}`);
+  }
+
+  obtenerEtiquetaObjetivo(valor: Exclude<ObjetivoNutricional, null>): string {
+    return this.translateService.instant(`COMMON.GOALS.${valor}`);
+  }
+
+  obtenerEtiquetaPreferencia(valor: PreferenciaComposicion): string {
+    return this.translateService.instant(`COMMON.COMPOSITION.${valor}`);
   }
 
   actualizarCodigoPostal(event: CustomEvent): void {
@@ -309,66 +309,6 @@ export class PerfilPage implements OnInit {
   actualizarNombreTitular(event: CustomEvent): void {
     this.perfil.tarjetaPrincipal = this.obtenerTarjetaEditable();
     this.perfil.tarjetaPrincipal.nombreTitular = this.sanitizarTextoSoloLetras(event.detail.value);
-  }
-
-  private obtenerDireccionEditable(): DireccionPrincipal {
-    return this.perfil.direccionPrincipal ?? this.crearDireccionVacia();
-  }
-
-  private obtenerTarjetaEditable(): TarjetaPrincipal {
-    return this.perfil.tarjetaPrincipal ?? this.crearTarjetaVacia();
-  }
-
-  private crearDireccionVacia(): DireccionPrincipal {
-    return {
-      nombre: '',
-      calleNumero: '',
-      ciudad: '',
-      codigoPostal: '',
-      provincia: '',
-      telefono: '',
-      instrucciones: ''
-    };
-  }
-
-  private crearTarjetaVacia(): TarjetaPrincipal {
-    return {
-      nombreTitular: '',
-      numeroTarjeta: '',
-      fechaCaducidad: '',
-      cvv: ''
-    };
-  }
-
-  private obtenerClaveSesion(): string {
-    return String(this.usuarioActual?.id ?? 'guest');
-  }
-
-  private aplicarPrefillPrimerPedidoSiCorresponde(): void {
-    if (
-      !this.firstOrderService.estaActivo() ||
-      !this.usuarioActual ||
-      !this.firstOrderService.esUsuarioRecienCreado(this.usuarioActual.email) ||
-      this.tienePreferenciasNutricionales(this.perfil)
-    ) {
-      return;
-    }
-
-    const filtros = this.firstOrderService.obtenerFiltrosNutricionales();
-    this.perfil = {
-      ...this.perfil,
-      alergenos: [...filtros.alergenos],
-      objetivoNutricional: filtros.objetivoNutricional,
-      preferenciasComposicion: [...filtros.preferenciasComposicion]
-    };
-  }
-
-  private tienePreferenciasNutricionales(perfil: UserProfile): boolean {
-    return (
-      perfil.alergenos.length > 0 ||
-      perfil.objetivoNutricional !== null ||
-      perfil.preferenciasComposicion.length > 0
-    );
   }
 
   formularioPerfilValido(): boolean {
@@ -459,6 +399,70 @@ export class PerfilPage implements OnInit {
     return false;
   }
 
+  tarjetaGuardadaEnmascaradaVisible(): boolean {
+    return this.profileService.tarjetaPrincipalGuardadaEsUsable(this.perfil.tarjetaPrincipal);
+  }
+
+  private obtenerDireccionEditable(): DireccionPrincipal {
+    return this.perfil.direccionPrincipal ?? this.crearDireccionVacia();
+  }
+
+  private obtenerTarjetaEditable(): TarjetaPrincipal {
+    return this.perfil.tarjetaPrincipal ?? this.crearTarjetaVacia();
+  }
+
+  private crearDireccionVacia(): DireccionPrincipal {
+    return {
+      nombre: '',
+      calleNumero: '',
+      ciudad: '',
+      codigoPostal: '',
+      provincia: '',
+      telefono: '',
+      instrucciones: ''
+    };
+  }
+
+  private crearTarjetaVacia(): TarjetaPrincipal {
+    return {
+      nombreTitular: '',
+      numeroTarjeta: '',
+      fechaCaducidad: '',
+      cvv: ''
+    };
+  }
+
+  private obtenerClaveSesion(): string {
+    return String(this.usuarioActual?.id ?? 'guest');
+  }
+
+  private aplicarPrefillPrimerPedidoSiCorresponde(): void {
+    if (
+      !this.firstOrderService.estaActivo() ||
+      !this.usuarioActual ||
+      !this.firstOrderService.esUsuarioRecienCreado(this.usuarioActual.email) ||
+      this.tienePreferenciasNutricionales(this.perfil)
+    ) {
+      return;
+    }
+
+    const filtros = this.firstOrderService.obtenerFiltrosNutricionales();
+    this.perfil = {
+      ...this.perfil,
+      alergenos: [...filtros.alergenos],
+      objetivoNutricional: filtros.objetivoNutricional,
+      preferenciasComposicion: [...filtros.preferenciasComposicion]
+    };
+  }
+
+  private tienePreferenciasNutricionales(perfil: UserProfile): boolean {
+    return (
+      perfil.alergenos.length > 0 ||
+      perfil.objetivoNutricional !== null ||
+      perfil.preferenciasComposicion.length > 0
+    );
+  }
+
   private nombreValido(): boolean {
     return this.profileService.textoSoloLetrasEsValido(this.perfil.nombre, 2);
   }
@@ -497,10 +501,6 @@ export class PerfilPage implements OnInit {
 
   private tarjetaConDatos(): boolean {
     return this.profileService.tarjetaPrincipalTieneDatos(this.perfil.tarjetaPrincipal);
-  }
-
-  tarjetaGuardadaEnmascaradaVisible(): boolean {
-    return this.profileService.tarjetaPrincipalGuardadaEsUsable(this.perfil.tarjetaPrincipal);
   }
 
   private tarjetaValida(): boolean {

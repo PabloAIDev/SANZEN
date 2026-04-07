@@ -1,17 +1,19 @@
 <ion-header class="toolbar-logo-grande">
   <ion-toolbar>
     <ion-title>
-      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+      <img class="app-header-logo" src="assets/img/letrasSanzen.png" alt="SANZEN" />
     </ion-title>
+    <ion-buttons slot="end">
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="confirmacion-content">
   <div class="confirmacion-shell">
     <section class="hero">
-      <span class="hero-kicker">Pago completado</span>
-      <h1>Tu pedido ya está en marcha</h1>
-      <p>La simulación de pago se ha realizado correctamente y el pedido ha quedado registrado.</p>
+      <span class="hero-kicker">{{ 'CONFIRMATION.HERO_KICKER' | translate }}</span>
+      <h1>{{ 'CONFIRMATION.HERO_TITLE' | translate }}</h1>
+      <p>{{ 'CONFIRMATION.HERO_TEXT' | translate }}</p>
     </section>
 
     @if (ultimoPedido) {
@@ -19,7 +21,7 @@
         <ion-card-header>
           <div class="pedido-top">
             <div>
-              <ion-note>Número de pedido</ion-note>
+              <ion-note>{{ 'COMMON.LABELS.ORDER_NUMBER' | translate }}</ion-note>
               <ion-card-title>{{ ultimoPedido.numeroPedido }}</ion-card-title>
             </div>
 
@@ -32,27 +34,27 @@
         <ion-card-content>
           <div class="pedido-meta-grid">
             <div class="pedido-meta-item">
-              <span class="meta-label">Fecha</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.DATE' | translate }}</span>
               <strong>{{ formatearFecha(ultimoPedido.fechaCreacion) }}</strong>
             </div>
 
             <div class="pedido-meta-item">
-              <span class="meta-label">Entrega</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.DELIVERY' | translate }}</span>
               <strong>{{ formatearFechaEntrega(ultimoPedido.fechaEntregaProgramada, ultimoPedido.franjaEntrega) }}</strong>
             </div>
 
             <div class="pedido-meta-item">
-              <span class="meta-label">Total</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.TOTAL' | translate }}</span>
               <strong>{{ ultimoPedido.total | currency:'EUR' }}</strong>
             </div>
 
             <div class="pedido-meta-item">
-              <span class="meta-label">Franja</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.TIMESLOT' | translate }}</span>
               <strong>{{ ultimoPedido.franjaEntrega }}</strong>
             </div>
 
             <div class="pedido-meta-item">
-              <span class="meta-label">Pago</span>
+              <span class="meta-label">{{ 'COMMON.LABELS.PAYMENT' | translate }}</span>
               <strong>{{ obtenerEtiquetaMetodoPago(ultimoPedido.metodoPago) }}</strong>
             </div>
           </div>
@@ -64,11 +66,11 @@
           </div>
 
           <div class="direccion-box">
-            <span class="meta-label">Dirección de entrega</span>
+            <span class="meta-label">{{ 'COMMON.LABELS.DELIVERY_ADDRESS' | translate }}</span>
             <strong>{{ ultimoPedido.direccionEntrega.nombre }}</strong>
             <p>{{ ultimoPedido.direccionEntrega.linea }}</p>
             @if (ultimoPedido.direccionEntrega.instrucciones !== '') {
-              <p>Instrucciones: {{ ultimoPedido.direccionEntrega.instrucciones }}</p>
+              <p>{{ 'CONFIRMATION.INSTRUCTIONS_PREFIX' | translate:{ value: ultimoPedido.direccionEntrega.instrucciones } }}</p>
             }
           </div>
 
@@ -76,11 +78,11 @@
             @for (item of ultimoPedido.items; track item.platoId) {
               <ion-item class="pedido-item">
                 <ion-thumbnail slot="start">
-                  <img [src]="item.imagen" [alt]="item.nombre" />
+                  <img [src]="item.imagen" [alt]="obtenerNombrePlato(item.platoId, item.nombre)" />
                 </ion-thumbnail>
 
                 <ion-label>
-                  <h3>{{ item.nombre }}</h3>
+                  <h3>{{ obtenerNombrePlato(item.platoId, item.nombre) }}</h3>
                   <p>{{ item.cantidad }} x {{ item.precioUnitario | currency:'EUR' }}</p>
                 </ion-label>
 
@@ -94,11 +96,11 @@
 
     <div class="acciones">
       <ion-button expand="block" [routerLink]="['/mis-pedidos']">
-        Ver mis pedidos
+        {{ 'COMMON.ACTIONS.VIEW_ORDERS' | translate }}
       </ion-button>
 
       <ion-button expand="block" fill="outline" [routerLink]="['/menu']">
-        Volver al menú
+        {{ 'COMMON.ACTIONS.BACK_TO_MENU' | translate }}
       </ion-button>
     </div>
   </div>

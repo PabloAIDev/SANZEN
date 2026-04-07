@@ -16,7 +16,9 @@ export class UserSessionService {
   constructor(private http: HttpClient) {}
 
   async cargarInicial(): Promise<void> {
-    this.cerrarSesion();
+    const usuarioPersistido = this.cargarUsuarioPersistido();
+    this.usuarioActual = usuarioPersistido;
+    this.usuarioActualSubject.next(this.usuarioActual);
     return Promise.resolve();
   }
 
@@ -73,5 +75,48 @@ export class UserSessionService {
     }
 
     localStorage.setItem(this.storageKey, JSON.stringify(this.usuarioActual));
+  }
+
+  private cargarUsuarioPersistido(): SessionUser | null {
+    const rawValue = localStorage.getItem(this.storageKey);
+
+    if (!rawValue) {
+      return null;
+    }
+
+    try {
+      const parsedValue = JSON.parse(rawValue) as Partial<SessionUser> | null;
+
+      if (!this.esSesionPersistidaValida(parsedValue)) {
+        localStorage.removeItem(this.storageKey);
+        return null;
+      }
+
+      const token = typeof parsedValue.token === 'string' ? parsedValue.token.trim() : '';
+
+      return {
+        id: parsedValue.id,
+        nombre: parsedValue.nombre.trim(),
+        email: parsedValue.email.trim(),
+        token
+      };
+    } catch {
+      localStorage.removeItem(this.storageKey);
+      return null;
+    }
+  }
+
+  private esSesionPersistidaValida(value: Partial<SessionUser> | null): value is SessionUser {
+    return Boolean(
+      value &&
+      Number.isInteger(value.id) &&
+      Number(value.id) > 0 &&
+      typeof value.nombre === 'string' &&
+      value.nombre.trim().length >= 2 &&
+      typeof value.email === 'string' &&
+      value.email.trim().length >= 5 &&
+      typeof value.token === 'string' &&
+      value.token.trim().length > 0
+    );
   }
 }

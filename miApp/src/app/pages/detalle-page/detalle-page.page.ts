@@ -16,8 +16,9 @@ import {
   IonTitle,
   IonToolbar
 } from '@ionic/angular/standalone';
-import { Plato } from '../../models/plato.model';
 import { Router } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { Plato } from '../../models/plato.model';
 import { PlatoService } from '../../services/plato.service';
 
 @Component({
@@ -40,7 +41,8 @@ import { PlatoService } from '../../services/plato.service';
     IonCardSubtitle,
     IonCardContent,
     IonChip,
-    IonLabel
+    IonLabel,
+    TranslateModule
   ]
 })
 export class DetallePagePage implements OnInit {
@@ -49,7 +51,8 @@ export class DetallePagePage implements OnInit {
 
   constructor(
     private router: Router,
-    private platoService: PlatoService
+    private platoService: PlatoService,
+    private translateService: TranslateService
   ) {}
 
   ngOnInit(): void {
@@ -78,5 +81,13 @@ export class DetallePagePage implements OnInit {
     };
 
     return mapa[alergeno] || '';
+  }
+
+  obtenerEtiquetaAlergeno(alergeno: string): string {
+    return this.translateService.instant(`COMMON.ALLERGENS.${alergeno}`);
+  }
+
+  obtenerEtiquetaCategoria(categoria: string): string {
+    return this.translateService.instant(`COMMON.CATEGORIES.${categoria}`);
   }
 }

@@ -8,38 +8,45 @@
   <ion-list lines="none">
     <ion-item button (click)="irAPerfil()">
       <ion-icon slot="start" name="person-outline"></ion-icon>
-      <ion-label>Ver perfil</ion-label>
+      <ion-label>{{ 'COMMON.NAV.PROFILE' | translate }}</ion-label>
     </ion-item>
 
     <ion-item button (click)="irASuscripcionDesdeMenu()">
       <ion-icon slot="start" name="repeat-outline"></ion-icon>
-      <ion-label>Gestionar suscripción semanal</ion-label>
+      <ion-label>{{ 'COMMON.NAV.MANAGE_SUBSCRIPTION' | translate }}</ion-label>
     </ion-item>
 
     <ion-item button (click)="irAComoFunciona()">
       <ion-icon slot="start" name="information-circle-outline"></ion-icon>
-      <ion-label>Cómo funciona</ion-label>
+      <ion-label>{{ 'COMMON.NAV.HOW_IT_WORKS' | translate }}</ion-label>
     </ion-item>
 
-    <ion-item button (click)="cambiarUsuarioDesdeMenu()">
-      <ion-icon slot="start" name="swap-horizontal-outline"></ion-icon>
-      <ion-label>Cambiar usuario</ion-label>
+    <ion-item lines="none" class="menu-language-item">
+      <ion-label>{{ 'COMMON.NAV.LANGUAGE' | translate }}</ion-label>
+      <app-language-switcher slot="end" variant="menu"></app-language-switcher>
     </ion-item>
+
+    @if (haySesionActiva()) {
+      <ion-item button (click)="cambiarUsuarioDesdeMenu()">
+        <ion-icon slot="start" name="log-out-outline"></ion-icon>
+        <ion-label>{{ 'COMMON.NAV.LOGOUT' | translate }}</ion-label>
+      </ion-item>
+    }
   </ion-list>
 </aside>
 
 <ion-header class="inicio-header toolbar-logo-grande">
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-button aria-label="Abrir menú" (click)="abrirMenuLateral()">
+      <ion-button [attr.aria-label]="'COMMON.NAV.OPEN_MENU' | translate" (click)="abrirMenuLateral()">
         <ion-icon slot="icon-only" name="menu-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
     <ion-title>
-      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+      <img class="app-header-logo" src="assets/img/letrasSanzen.png" alt="SANZEN" />
     </ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="irAPerfil()" aria-label="Ir al perfil">
+      <ion-button (click)="irAPerfil()" [attr.aria-label]="'COMMON.NAV.GO_TO_PROFILE' | translate">
         <ion-icon slot="icon-only" name="person-outline"></ion-icon>
       </ion-button>
     </ion-buttons>
@@ -54,16 +61,16 @@
 
     <section class="hero-section">
       <div class="hero-copy">
-        <span class="hero-eyebrow">Delivery saludable con identidad asiática</span>
-        <h1>Tu comida asiática saludable de la semana</h1>
-        <p>Menús personalizados según tus gustos, alergias e intolerancias.</p>
-        <p>Elige entre suscripción semanal o pedido individual con compra mínima de 20 €.</p>
+        <span class="hero-eyebrow">{{ 'HOME.HERO_EYEBROW' | translate }}</span>
+        <h1>{{ 'HOME.TITLE' | translate }}</h1>
+        <p>{{ 'HOME.SUBTITLE_ONE' | translate }}</p>
+        <p>{{ 'HOME.SUBTITLE_TWO' | translate }}</p>
 
-        <h2 class="first-order-title">Haz tu primer pedido</h2>
+        <h2 class="first-order-title">{{ 'HOME.FIRST_ORDER_TITLE' | translate }}</h2>
 
         <div class="hero-actions">
           <ion-button size="large" class="cta-principal" (click)="irASuscripcion()">
-            Suscripción semanal
+            {{ 'COMMON.ACTIONS.WEEKLY_SUBSCRIPTION' | translate }}
           </ion-button>
 
           <ion-button
@@ -71,33 +78,33 @@
             fill="outline"
             class="cta-secundaria"
             (click)="irAMenu()">
-            Pedido individual
+            {{ 'COMMON.ACTIONS.INDIVIDUAL_ORDER' | translate }}
           </ion-button>
         </div>
       </div>
 
       <div class="hero-media">
         <div class="hero-image-card">
-          <img [src]="imagenHero" alt="Plato asiático saludable" />
+          <img [src]="imagenHero" [attr.alt]="'HOME.IMAGE_ALT' | translate" />
         </div>
       </div>
     </section>
 
     <section class="bloque">
       <div class="section-heading">
-        <span class="section-kicker">Por qué SANZEN</span>
-        <h2>Una experiencia simple, flexible y bien cuidada</h2>
+        <span class="section-kicker">{{ 'HOME.WHY_KICKER' | translate }}</span>
+        <h2>{{ 'HOME.WHY_TITLE' | translate }}</h2>
       </div>
 
       <div class="valor-grid">
-        @for (valor of valores; track valor.titulo) {
+        @for (valor of valores; track valor.tituloKey) {
           <ion-card class="valor-card">
             <ion-card-content>
               <div class="valor-icono">
                 <ion-icon [name]="valor.icono"></ion-icon>
               </div>
-              <h3>{{ valor.titulo }}</h3>
-              <p>{{ valor.texto }}</p>
+              <h3>{{ valor.tituloKey | translate }}</h3>
+              <p>{{ valor.textoKey | translate }}</p>
             </ion-card-content>
           </ion-card>
         }
@@ -106,9 +113,9 @@
 
     <section class="bloque bloque-pasos">
       <div class="section-heading">
-        <span class="section-kicker">Cómo funciona</span>
-        <h2>Un resumen rápido para empezar</h2>
-        <p>La página dedicada de Cómo funciona incluye el detalle completo del proceso.</p>
+        <span class="section-kicker">{{ 'HOME.HOW_KICKER' | translate }}</span>
+        <h2>{{ 'HOME.HOW_TITLE' | translate }}</h2>
+        <p>{{ 'HOME.HOW_TEXT' | translate }}</p>
       </div>
 
       <div class="pasos-lista">
@@ -116,8 +123,8 @@
           <div class="paso-item">
             <div class="paso-numero">{{ paso.numero }}</div>
             <div class="paso-contenido">
-              <h3>{{ paso.titulo }}</h3>
-              <p>{{ paso.texto }}</p>
+              <h3>{{ paso.tituloKey | translate }}</h3>
+              <p>{{ paso.textoKey | translate }}</p>
             </div>
           </div>
         }

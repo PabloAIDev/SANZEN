@@ -4,31 +4,41 @@
       <ion-back-button defaultHref="/inicio"></ion-back-button>
     </ion-buttons>
     <ion-title>
-      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+      <img class="app-header-logo" src="assets/img/letrasSanzen.png" alt="SANZEN" />
     </ion-title>
+    <ion-buttons slot="end">
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content class="ion-padding">
   <ion-card>
     <ion-card-content>
-      <h1>Inicia sesión</h1>
-      <p>Escribe tus credenciales para entrar en SANZEN.</p>
+      <h1>{{ 'LOGIN.TITLE' | translate }}</h1>
+      <p>{{ 'LOGIN.SUBTITLE' | translate }}</p>
 
       <ion-item>
-        <ion-label position="stacked">Email</ion-label>
-        <ion-input [(ngModel)]="email" type="email" placeholder="usuario@email.com"></ion-input>
+        <ion-label position="stacked">{{ 'PROFILE.FIELDS.EMAIL' | translate }}</ion-label>
+        <ion-input
+          [(ngModel)]="email"
+          type="email"
+          [placeholder]="'LOGIN.PLACEHOLDERS.EMAIL' | translate">
+        </ion-input>
       </ion-item>
       @if (mostrarErrorLogin('email')) {
-        <p class="campo-error">Introduce un email válido.</p>
+        <p class="campo-error">{{ 'LOGIN.ERRORS.INVALID_EMAIL' | translate }}</p>
       }
 
       <ion-item>
-        <ion-label position="stacked">Password</ion-label>
-        <ion-input [(ngModel)]="password" type="password" placeholder="Password"></ion-input>
+        <ion-label position="stacked">{{ 'PROFILE.FIELDS.PASSWORD' | translate }}</ion-label>
+        <ion-input
+          [(ngModel)]="password"
+          type="password"
+          [placeholder]="'LOGIN.PLACEHOLDERS.PASSWORD' | translate">
+        </ion-input>
       </ion-item>
       @if (mostrarErrorLogin('password')) {
-        <p class="campo-error">La password debe tener al menos 6 caracteres.</p>
+        <p class="campo-error">{{ 'LOGIN.ERRORS.PASSWORD_MIN' | translate }}</p>
       }
 
       @if (error !== '') {
@@ -36,7 +46,7 @@
       }
 
       <ion-button expand="block" [disabled]="cargando" (click)="iniciarSesion()">
-        {{ cargando ? 'Entrando...' : 'Entrar' }}
+        {{ cargando ? ('LOGIN.ENTERING' | translate) : ('LOGIN.ENTER' | translate) }}
       </ion-button>
     </ion-card-content>
   </ion-card>
@@ -44,31 +54,43 @@
   @if (mostrarFormularioRegistro) {
     <ion-card>
       <ion-card-content>
-        <h1>Crear usuario</h1>
-        <p>Este formulario crea un usuario nuevo en la base de datos sin modificar los existentes.</p>
+        <h1>{{ 'LOGIN.REGISTER_TITLE' | translate }}</h1>
+        <p>{{ 'LOGIN.REGISTER_SUBTITLE' | translate }}</p>
 
         <ion-item>
-          <ion-label position="stacked">Nombre</ion-label>
-          <ion-input [(ngModel)]="nombreRegistro" type="text" placeholder="Nombre completo"></ion-input>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.NAME' | translate }}</ion-label>
+          <ion-input
+            [(ngModel)]="nombreRegistro"
+            type="text"
+            [placeholder]="'LOGIN.PLACEHOLDERS.REGISTER_NAME' | translate">
+          </ion-input>
         </ion-item>
         @if (mostrarErrorRegistro('nombre')) {
-          <p class="campo-error">El nombre debe tener al menos 2 caracteres.</p>
+          <p class="campo-error">{{ 'LOGIN.ERRORS.NAME_MIN' | translate }}</p>
         }
 
         <ion-item>
-          <ion-label position="stacked">Email</ion-label>
-          <ion-input [(ngModel)]="emailRegistro" type="email" placeholder="nuevo@email.com"></ion-input>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.EMAIL' | translate }}</ion-label>
+          <ion-input
+            [(ngModel)]="emailRegistro"
+            type="email"
+            [placeholder]="'LOGIN.PLACEHOLDERS.REGISTER_EMAIL' | translate">
+          </ion-input>
         </ion-item>
         @if (mostrarErrorRegistro('email')) {
-          <p class="campo-error">Introduce un email válido.</p>
+          <p class="campo-error">{{ 'LOGIN.ERRORS.INVALID_EMAIL' | translate }}</p>
         }
 
         <ion-item>
-          <ion-label position="stacked">Password</ion-label>
-          <ion-input [(ngModel)]="passwordRegistro" type="password" placeholder="Mínimo 6 caracteres"></ion-input>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.PASSWORD' | translate }}</ion-label>
+          <ion-input
+            [(ngModel)]="passwordRegistro"
+            type="password"
+            [placeholder]="'LOGIN.PLACEHOLDERS.REGISTER_PASSWORD' | translate">
+          </ion-input>
         </ion-item>
         @if (mostrarErrorRegistro('password')) {
-          <p class="campo-error">La password debe tener al menos 6 caracteres.</p>
+          <p class="campo-error">{{ 'LOGIN.ERRORS.PASSWORD_MIN' | translate }}</p>
         }
 
         @if (errorRegistro !== '') {
@@ -76,10 +98,9 @@
         }
 
         <ion-button expand="block" fill="outline" [disabled]="cargando" (click)="registrarUsuario()">
-          Crear usuario
+          {{ 'LOGIN.REGISTER_BUTTON' | translate }}
         </ion-button>
       </ion-card-content>
     </ion-card>
   }
-
 </ion-content>

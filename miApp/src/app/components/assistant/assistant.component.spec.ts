@@ -84,4 +84,16 @@ describe('AssistantComponent', () => {
     expect(component.mensajes.length).toBe(1);
     expect(component.mensajes[0].role).toBe('assistant');
   });
+
+  it('no debe navegar si la accion del asistente no es valida', async () => {
+    const router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+
+    await component.ejecutarAccion({
+      type: 'navigate',
+      target: 'https://evil.example',
+      label: 'Abrir'
+    });
+
+    expect(router.navigateByUrl).not.toHaveBeenCalled();
+  });
 });

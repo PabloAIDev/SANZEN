@@ -15,6 +15,7 @@ import {
   IonToolbar
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { CarritoItem } from '../../models/carrito-item.model';
 import { Plato } from '../../models/plato.model';
 import { CarritoService } from '../../services/carrito.service';
@@ -42,7 +43,8 @@ import { FirstOrderService } from '../../services/first-order.service';
     IonThumbnail,
     IonLabel,
     IonNote,
-    IonButton
+    IonButton,
+    TranslateModule
   ]
 })
 export class ResumenPage implements OnInit {
@@ -169,10 +171,6 @@ export class ResumenPage implements OnInit {
 
   obtenerPlanSuscripcion(): number {
     return this.subscriptionService.obtenerPlanSemanalActual();
-  }
-
-  esPlatoSuscripcion(platoId: number): boolean {
-    return this.subscriptionService.tienePlatoSeleccionado(platoId);
   }
 
   anadirPostre(plato: Plato): void {

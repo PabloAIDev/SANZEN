@@ -18,6 +18,7 @@ import {
 } from '@ionic/angular/standalone';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { OrderService } from '../../services/order.service';
 import { ProfileService } from '../../services/profile.service';
 import { SubscriptionService } from '../../services/subscription.service';
@@ -44,7 +45,8 @@ import { FirstOrderService } from '../../services/first-order.service';
     IonLabel,
     IonInput,
     IonButton,
-    IonNote
+    IonNote,
+    TranslateModule
   ]
 })
 export class LoginPage implements OnInit {
@@ -68,7 +70,8 @@ export class LoginPage implements OnInit {
     private profileService: ProfileService,
     private subscriptionService: SubscriptionService,
     private userSessionService: UserSessionService,
-    private firstOrderService: FirstOrderService
+    private firstOrderService: FirstOrderService,
+    private translateService: TranslateService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -83,7 +86,7 @@ export class LoginPage implements OnInit {
     this.intentoLogin = true;
 
     if (!this.formularioLoginValido()) {
-      this.error = 'Revisa los campos marcados.';
+      this.error = this.translateService.instant('LOGIN.ERRORS.REVIEW_FIELDS');
       return;
     }
 
@@ -135,7 +138,7 @@ export class LoginPage implements OnInit {
         });
       }
     } catch {
-      this.error = 'Credenciales incorrectas.';
+      this.error = this.translateService.instant('LOGIN.ERRORS.WRONG_CREDENTIALS');
     } finally {
       this.cargando = false;
     }
@@ -145,7 +148,7 @@ export class LoginPage implements OnInit {
     this.intentoRegistro = true;
 
     if (!this.formularioRegistroValido()) {
-      this.errorRegistro = 'Revisa los campos marcados.';
+      this.errorRegistro = this.translateService.instant('LOGIN.ERRORS.REVIEW_FIELDS');
       return;
     }
 
@@ -175,7 +178,7 @@ export class LoginPage implements OnInit {
       if (error instanceof HttpErrorResponse && typeof error.error?.message === 'string') {
         this.errorRegistro = error.error.message;
       } else {
-        this.errorRegistro = 'No se ha podido registrar el usuario. Revisa si el email ya existe.';
+        this.errorRegistro = this.translateService.instant('LOGIN.ERRORS.REGISTER_GENERIC');
       }
     } finally {
       this.cargando = false;

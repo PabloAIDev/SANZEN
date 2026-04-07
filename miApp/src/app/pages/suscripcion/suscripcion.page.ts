@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -25,6 +25,7 @@ import {
 } from '@ionic/angular/standalone';
 import { ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   DiaEntregaSemanal,
   PlanSemanal,
@@ -34,14 +35,9 @@ import { SubscriptionService } from '../../services/subscription.service';
 import { CarritoService } from '../../services/carrito.service';
 import { UserSessionService } from '../../services/user-session.service';
 import { PlatoService } from '../../services/plato.service';
-import { ProfileService } from '../../services/profile.service';
 import { OrderService } from '../../services/order.service';
 import { CarritoItem } from '../../models/carrito-item.model';
-
-interface DiaEntregaOption {
-  valor: DiaEntregaSemanal;
-  etiqueta: string;
-}
+import { LanguageService } from '../../services/language.service';
 
 @Component({
   selector: 'app-suscripcion',
@@ -70,7 +66,8 @@ interface DiaEntregaOption {
     IonSelectOption,
     IonButton,
     IonText,
-    IonThumbnail
+    IonThumbnail,
+    TranslateModule
   ]
 })
 export class SuscripcionPage implements OnInit {
@@ -79,15 +76,16 @@ export class SuscripcionPage implements OnInit {
   readonly minimoPlatosSuscripcion: PlanSemanal =
     this.subscriptionService.obtenerMinimoPlatosSuscripcion() as PlanSemanal;
 
-  readonly diasEntrega: DiaEntregaOption[] = [
-    { valor: 'lunes', etiqueta: 'Lunes' },
-    { valor: 'martes', etiqueta: 'Martes' },
-    { valor: 'miercoles', etiqueta: 'Miércoles' },
-    { valor: 'jueves', etiqueta: 'Jueves' },
-    { valor: 'viernes', etiqueta: 'Viernes' },
-    { valor: 'sabado', etiqueta: 'Sábado' },
-    { valor: 'domingo', etiqueta: 'Domingo' }
+  readonly diasEntrega: DiaEntregaSemanal[] = [
+    'lunes',
+    'martes',
+    'miercoles',
+    'jueves',
+    'viernes',
+    'sabado',
+    'domingo'
   ];
+
   private readonly diaSemanaPorNombre: Record<DiaEntregaSemanal, number> = {
     lunes: 1,
     martes: 2,
@@ -102,11 +100,12 @@ export class SuscripcionPage implements OnInit {
     private subscriptionService: SubscriptionService,
     private carritoService: CarritoService,
     private platoService: PlatoService,
-    private profileService: ProfileService,
     private orderService: OrderService,
     private userSessionService: UserSessionService,
     private router: Router,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private translateService: TranslateService,
+    private languageService: LanguageService
   ) {}
 
   ngOnInit(): void {
@@ -157,6 +156,14 @@ export class SuscripcionPage implements OnInit {
     return this.subscriptionService.obtenerDescuentoPorPlan(this.suscripcion.planSemanal) * 100;
   }
 
+  obtenerEtiquetaDia(diaEntrega: DiaEntregaSemanal): string {
+    return this.translateService.instant(`COMMON.DAYS.${diaEntrega}`);
+  }
+
+  obtenerEtiquetaCategoria(categoria: string): string {
+    return this.translateService.instant(`COMMON.CATEGORIES.${categoria}`);
+  }
+
   obtenerProximaEntregaResumen(): string {
     const proximaEntregaBase = this.suscripcion.proximaEntregaIso
       ? new Date(this.suscripcion.proximaEntregaIso)
@@ -168,12 +175,12 @@ export class SuscripcionPage implements OnInit {
       this.avanzarHastaSemanaPosterior(proximaEntregaBase, ultimaEntregaCliente);
     }
 
-    const fechaFormateada = new Intl.DateTimeFormat('es-ES', {
+    const fechaFormateada = new Intl.DateTimeFormat(this.languageService.getCurrentLocale(), {
       day: 'numeric',
       month: 'long'
     }).format(proximaEntregaBase);
 
-    return `${this.suscripcion.diaEntrega} ${fechaFormateada}`;
+    return `${this.obtenerEtiquetaDia(this.suscripcion.diaEntrega)} ${fechaFormateada}`;
   }
 
   puedeSimularRenovacion(): boolean {
@@ -183,7 +190,7 @@ export class SuscripcionPage implements OnInit {
   async simularRenovacionSemanal(): Promise<void> {
     if (!this.puedeSimularRenovacion()) {
       await this.mostrarToast(
-        'Necesitas una suscripción activa con al menos 5 platos para realizar la renovación.',
+        this.translateService.instant('SUBSCRIPTION.TOASTS.NEED_ACTIVE_AND_COMPLETE'),
         'warning'
       );
       return;
@@ -194,7 +201,9 @@ export class SuscripcionPage implements OnInit {
       await this.orderService.refrescarDesdeApi();
       this.suscripcion = this.subscriptionService.obtenerSuscripcion();
       await this.mostrarToast(
-        `Pedido semanal ${resultado.numeroPedido} generado correctamente.`,
+        this.translateService.instant('SUBSCRIPTION.TOASTS.RENEWAL_SUCCESS', {
+          orderNumber: resultado.numeroPedido
+        }),
         'success'
       );
       await this.router.navigateByUrl('/mis-pedidos');
@@ -207,12 +216,50 @@ export class SuscripcionPage implements OnInit {
           ? (error as { error: { message: string } }).error.message
           : error instanceof Error
             ? error.message
-            : 'No se ha podido simular la renovación semanal.';
+            : this.translateService.instant('SUBSCRIPTION.TOASTS.RENEWAL_ERROR');
       await this.mostrarToast(message, 'danger');
     }
   }
 
   async guardarSuscripcion(): Promise<void> {
+    const idsCarrito = this.carritoService.obtenerIdsPlatosSuscripcion();
+    const cantidadSeleccionada = idsCarrito.length > 0
+      ? idsCarrito.length
+      : this.suscripcion.platosSeleccionadosIds.length;
+
+    if (
+      this.suscripcion.activa &&
+      cantidadSeleccionada < this.minimoPlatosSuscripcion
+    ) {
+      this.suscripcion = this.subscriptionService.previsualizarSuscripcion({
+        ...this.suscripcion,
+        activa: true,
+        planSemanal: this.minimoPlatosSuscripcion,
+        platosPorSemana: this.minimoPlatosSuscripcion,
+        platosSeleccionadosIds:
+          idsCarrito.length > 0 ? idsCarrito : this.suscripcion.platosSeleccionadosIds
+      });
+      this.subscriptionService.establecerSuscripcionTemporal(this.suscripcion);
+      this.actualizarSeleccionActual();
+
+      const platosPendientes = this.minimoPlatosSuscripcion - cantidadSeleccionada;
+      await this.mostrarToast(
+        cantidadSeleccionada === 0
+          ? this.translateService.instant('SUBSCRIPTION.TOASTS.INCOMPLETE_EMPTY', {
+            minimum: this.minimoPlatosSuscripcion
+          })
+          : this.translateService.instant('SUBSCRIPTION.TOASTS.INCOMPLETE_PARTIAL', {
+            remaining: platosPendientes
+          }),
+        'warning'
+      );
+
+      await this.router.navigate(['/menu'], {
+        queryParams: { subscriptionSelection: '1' }
+      });
+      return;
+    }
+
     this.suscripcion = this.subscriptionService.guardarPlan(
       this.minimoPlatosSuscripcion,
       this.suscripcion.activa,
@@ -221,8 +268,6 @@ export class SuscripcionPage implements OnInit {
     );
 
     if (this.suscripcion.activa) {
-      const idsCarrito = this.carritoService.obtenerIdsPlatosSuscripcion();
-
       if (idsCarrito.length > 0) {
         this.suscripcion = this.subscriptionService.actualizarSeleccionPlatos(
           idsCarrito,
@@ -273,7 +318,33 @@ export class SuscripcionPage implements OnInit {
     return this.seleccionActual.length > 0;
   }
 
+  seleccionCompleta(): boolean {
+    return this.suscripcion.platosSeleccionadosIds.length >= this.minimoPlatosSuscripcion;
+  }
+
+  obtenerTextoBotonSeleccion(): string {
+    if (!this.tieneSeleccionGuardada()) {
+      return this.translateService.instant('COMMON.ACTIONS.CHOOSE_PLATES');
+    }
+
+    if (!this.seleccionCompleta()) {
+      return this.translateService.instant('COMMON.ACTIONS.COMPLETE_SELECTION');
+    }
+
+    return this.translateService.instant('COMMON.ACTIONS.MODIFY_SELECTION');
+  }
+
   async irAModificarSeleccion(): Promise<void> {
+    if (!this.suscripcion.activa) {
+      this.suscripcion = this.subscriptionService.previsualizarSuscripcion({
+        ...this.suscripcion,
+        activa: true,
+        planSemanal: this.minimoPlatosSuscripcion,
+        platosPorSemana: this.minimoPlatosSuscripcion
+      });
+      this.subscriptionService.establecerSuscripcionTemporal(this.suscripcion);
+    }
+
     await this.router.navigate(['/menu'], {
       queryParams: { subscriptionSelection: '1' }
     });
@@ -372,4 +443,3 @@ export class SuscripcionPage implements OnInit {
     await toast.present();
   }
 }
-

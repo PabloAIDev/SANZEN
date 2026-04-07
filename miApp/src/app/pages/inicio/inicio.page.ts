@@ -15,6 +15,7 @@ import {
   IonToolbar
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { addIcons } from 'ionicons';
 import {
   menuOutline,
@@ -24,23 +25,25 @@ import {
   cardOutline,
   personOutline,
   repeatOutline,
-  swapHorizontalOutline,
+  logOutOutline,
   informationCircleOutline
 } from 'ionicons/icons';
 import { UserSessionService } from '../../services/user-session.service';
 import { FirstOrderService } from '../../services/first-order.service';
 import { SubscriptionService } from '../../services/subscription.service';
+import { CarritoService } from '../../services/carrito.service';
+import { LanguageSwitcherComponent } from '../../components/language-switcher/language-switcher.component';
 
 interface ValorDiferencial {
   icono: string;
-  titulo: string;
-  texto: string;
+  tituloKey: string;
+  textoKey: string;
 }
 
 interface PasoFuncionamiento {
   numero: string;
-  titulo: string;
-  texto: string;
+  tituloKey: string;
+  textoKey: string;
 }
 
 @Component({
@@ -61,7 +64,9 @@ interface PasoFuncionamiento {
     IonIcon,
     IonList,
     IonItem,
-    IonLabel
+    IonLabel,
+    TranslateModule,
+    LanguageSwitcherComponent
   ]
 })
 export class InicioPage {
@@ -70,46 +75,46 @@ export class InicioPage {
   readonly valores: ValorDiferencial[] = [
     {
       icono: 'person-outline',
-      titulo: 'Menús personalizados',
-      texto: 'Adaptados a alergias, intolerancias y preferencias nutricionales reales, y diseñados por nuestros chefs expertos en nutrición y comida asiática.'
+      tituloKey: 'HOME.VALUES.personalized.TITLE',
+      textoKey: 'HOME.VALUES.personalized.TEXT'
     },
     {
       icono: 'restaurant-outline',
-      titulo: 'Platos equilibrados',
-      texto: 'Comida asiática saludable con sabor y buen balance nutricional.'
+      tituloKey: 'HOME.VALUES.balanced.TITLE',
+      textoKey: 'HOME.VALUES.balanced.TEXT'
     },
     {
       icono: 'time-outline',
-      titulo: 'Entrega por franjas',
-      texto: 'Recibe tu pedido en el tramo horario que mejor te encaje.'
+      tituloKey: 'HOME.VALUES.delivery.TITLE',
+      textoKey: 'HOME.VALUES.delivery.TEXT'
     },
     {
       icono: 'card-outline',
-      titulo: 'Pago rápido y sencillo',
-      texto: 'Un proceso claro y ágil, pensado para repetir sin fricción.'
+      tituloKey: 'HOME.VALUES.payment.TITLE',
+      textoKey: 'HOME.VALUES.payment.TEXT'
     },
     {
       icono: 'leaf-outline',
-      titulo: 'Comprometidos con el medio ambiente',
-      texto: 'Usamos tuppers reciclables y priorizamos el reparto con vehículos eléctricos para reducir el impacto ambiental.'
+      tituloKey: 'HOME.VALUES.sustainability.TITLE',
+      textoKey: 'HOME.VALUES.sustainability.TEXT'
     }
   ];
 
   readonly pasos: PasoFuncionamiento[] = [
     {
       numero: '01',
-      titulo: 'Haz tu primer pedido',
-      texto: 'Elige si quieres empezar con un pedido individual o con una suscripción semanal.'
+      tituloKey: 'HOME.STEPS.one.TITLE',
+      textoKey: 'HOME.STEPS.one.TEXT'
     },
     {
       numero: '02',
-      titulo: 'Selecciona platos y accede',
-      texto: 'Filtra, añade platos al carrito y, al ir al pago, inicia sesión o crea tu usuario si todavía no tienes cuenta.'
+      tituloKey: 'HOME.STEPS.two.TITLE',
+      textoKey: 'HOME.STEPS.two.TEXT'
     },
     {
       numero: '03',
-      titulo: 'Confirma y gestiona tus pedidos',
-      texto: 'Completa tu perfil si hace falta, confirma la entrega y después podrás repetir, modificar o renovar tu suscripción más rápido.'
+      tituloKey: 'HOME.STEPS.three.TITLE',
+      textoKey: 'HOME.STEPS.three.TEXT'
     }
   ];
 
@@ -119,7 +124,8 @@ export class InicioPage {
     private router: Router,
     private userSessionService: UserSessionService,
     private firstOrderService: FirstOrderService,
-    private subscriptionService: SubscriptionService
+    private subscriptionService: SubscriptionService,
+    private carritoService: CarritoService
   ) {
     addIcons({
       menuOutline,
@@ -129,7 +135,7 @@ export class InicioPage {
       cardOutline,
       personOutline,
       repeatOutline,
-      swapHorizontalOutline,
+      logOutOutline,
       informationCircleOutline
     });
   }
@@ -188,8 +194,15 @@ export class InicioPage {
 
   cambiarUsuarioDesdeMenu(): void {
     this.cerrarMenuLateral();
+    this.firstOrderService.finalizarProceso();
+    this.carritoService.reiniciarCarrito();
     this.userSessionService.cerrarSesion();
-    this.router.navigateByUrl('/login');
+    this.subscriptionService.restablecerSuscripcionLocal();
+    this.router.navigateByUrl('/inicio');
+  }
+
+  haySesionActiva(): boolean {
+    return this.userSessionService.haySesionActiva();
   }
 
   irAPerfil(): void {

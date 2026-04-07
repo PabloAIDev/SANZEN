@@ -1,9 +1,11 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { InicioPage } from './inicio.page';
 import { UserSessionService } from '../../services/user-session.service';
 import { FirstOrderService } from '../../services/first-order.service';
 import { SubscriptionService } from '../../services/subscription.service';
+import { CarritoService } from '../../services/carrito.service';
 
 describe('InicioPage', () => {
   let component: InicioPage;
@@ -11,7 +13,7 @@ describe('InicioPage', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [InicioPage],
+      imports: [InicioPage, TranslateModule.forRoot()],
       providers: [
         {
           provide: Router,
@@ -31,6 +33,12 @@ describe('InicioPage', () => {
           useValue: {
             iniciarProceso: jasmine.createSpy('iniciarProceso'),
             finalizarProceso: jasmine.createSpy('finalizarProceso')
+          }
+        },
+        {
+          provide: CarritoService,
+          useValue: {
+            reiniciarCarrito: jasmine.createSpy('reiniciarCarrito')
           }
         },
         {

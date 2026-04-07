@@ -1,3 +1,5 @@
+export type AssistantResponseSource = 'openai' | 'fallback' | 'rules';
+
 export interface AssistantAction {
   type: 'navigate';
   target: string;
@@ -12,7 +14,7 @@ export interface AssistantHistoryEntry {
 export interface AssistantResponse {
   message: string;
   actions: AssistantAction[];
-  source?: 'openai' | 'fallback';
+  source?: AssistantResponseSource;
 }
 
 export interface AssistantMessage extends AssistantHistoryEntry {

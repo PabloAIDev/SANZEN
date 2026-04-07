@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { DetallePagePage } from './detalle-page.page';
 import { PlatoService } from '../../services/plato.service';
@@ -10,7 +11,7 @@ describe('DetallePagePage', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DetallePagePage],
+      imports: [DetallePagePage, TranslateModule.forRoot()],
       providers: [
         {
           provide: Router,

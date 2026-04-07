@@ -397,7 +397,7 @@ async function upsertPerfil(req, res) {
           : null;
 
       if (!tarjetaPersistible) {
-        throw Object.assign(new Error('La tarjeta principal no es vÃ¡lida.'), { status: 400 });
+        throw Object.assign(new Error('La tarjeta principal no es valida.'), { status: 400 });
       }
 
       if (tarjetaRows.length > 0) {
@@ -433,7 +433,7 @@ async function upsertPerfil(req, res) {
           ]
         );
       } else {
-        throw Object.assign(new Error('La tarjeta principal no es vÃ¡lida.'), { status: 400 });
+        throw Object.assign(new Error('La tarjeta principal no es valida.'), { status: 400 });
       }
     }
 

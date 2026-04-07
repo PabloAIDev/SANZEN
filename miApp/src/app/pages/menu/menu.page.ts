@@ -1,4 +1,4 @@
-﻿import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -32,6 +32,8 @@ import {
   IonTitle,
   IonToolbar
 } from '@ionic/angular/standalone';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Plato } from '../../models/plato.model';
 import { PlatoService } from '../../services/plato.service';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -46,7 +48,7 @@ import {
   personOutline,
   receiptOutline,
   repeatOutline,
-  swapHorizontalOutline,
+  logOutOutline,
   informationCircleOutline
 } from 'ionicons/icons';
 import { CarritoService } from '../../services/carrito.service';
@@ -60,6 +62,8 @@ import {
   PreferenciaComposicion
 } from '../../models/profile.model';
 import { CarritoItem } from '../../models/carrito-item.model';
+import { LanguageService } from '../../services/language.service';
+import { LanguageSwitcherComponent } from '../../components/language-switcher/language-switcher.component';
 
 @Component({
   selector: 'app-menu',
@@ -97,15 +101,19 @@ import { CarritoItem } from '../../models/carrito-item.model';
     IonRadioGroup,
     IonRadio,
     IonModal,
-    IonNote
+    IonNote,
+    TranslateModule,
+    LanguageSwitcherComponent
   ]
 })
 export class MenuPage implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
+
   platos: Plato[] = [];
   platosRecomendados: Plato[] = [];
   topHealthyFiltradosIds: number[] = [];
-  terminoBusqueda: string = '';
-  categoriaSeleccionada: string = 'Todas';
+  terminoBusqueda = '';
+  categoriaSeleccionada = 'Todas';
   alergenosDisponibles: string[] = [
     'Gluten',
     'Huevo',
@@ -118,17 +126,17 @@ export class MenuPage implements OnInit {
   ];
   alergenosSeleccionados: string[] = [];
   platosFiltrados: Plato[] = [];
-  modalFiltrosAbierto: boolean = false;
-  ordenHealthyActivo: boolean = false;
+  modalFiltrosAbierto = false;
+  ordenHealthyActivo = false;
   objetivoNutricionalSeleccionado: ObjetivoNutricional = null;
   preferenciasComposicionSeleccionadas: PreferenciaComposicion[] = [];
-  suscripcionActiva: boolean = false;
+  suscripcionActiva = false;
   platosSuscripcionSeleccionadosIds: number[] = [];
-  minimoPlatosSuscripcion: number = 0;
-  mensajeSuscripcion: string = '';
-  mensajeRecomendacion: string = '';
-  modalSeleccionAbierto: boolean = false;
-  menuLateralAbierto: boolean = false;
+  minimoPlatosSuscripcion = 0;
+  mensajeSuscripcion = '';
+  mensajeRecomendacion = '';
+  modalSeleccionAbierto = false;
+  menuLateralAbierto = false;
 
   constructor(
     private platoService: PlatoService,
@@ -139,7 +147,9 @@ export class MenuPage implements OnInit {
     private subscriptionService: SubscriptionService,
     private userSessionService: UserSessionService,
     private firstOrderService: FirstOrderService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private translateService: TranslateService,
+    private languageService: LanguageService
   ) {
     addIcons({
       menuOutline,
@@ -151,9 +161,16 @@ export class MenuPage implements OnInit {
       personOutline,
       receiptOutline,
       repeatOutline,
-      swapHorizontalOutline,
+      logOutOutline,
       informationCircleOutline
     });
+
+    this.languageService.currentLanguage$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.actualizarMensajeSuscripcion();
+        this.actualizarRecomendaciones();
+      });
   }
 
   ngOnInit(): void {
@@ -236,9 +253,15 @@ export class MenuPage implements OnInit {
 
   cambiarUsuarioDesdeMenu(): void {
     this.cerrarMenuLateral();
+    this.firstOrderService.finalizarProceso();
     this.carritoService.reiniciarCarrito();
     this.userSessionService.cerrarSesion();
-    this.router.navigateByUrl('/login');
+    this.subscriptionService.restablecerSuscripcionLocal();
+    this.router.navigateByUrl('/inicio');
+  }
+
+  haySesionActiva(): boolean {
+    return this.userSessionService.haySesionActiva();
   }
 
   irAComoFunciona(): void {
@@ -327,7 +350,7 @@ export class MenuPage implements OnInit {
     await this.router.navigateByUrl('/resumen');
   }
 
-  esPlatoBloqueadoPorSuscripcion(platoId: number): boolean {
+  esPlatoBloqueadoPorSuscripcion(_platoId: number): boolean {
     return false;
   }
 
@@ -345,6 +368,289 @@ export class MenuPage implements OnInit {
     };
 
     return mapa[alergeno] || '';
+  }
+
+  obtenerEtiquetaCategoria(categoria: string): string {
+    return this.translateService.instant(`COMMON.CATEGORIES.${categoria}`);
+  }
+
+  obtenerEtiquetaAlergeno(alergeno: string): string {
+    return this.translateService.instant(`COMMON.ALLERGENS.${alergeno}`);
+  }
+
+  obtenerEtiquetaPreferencia(preferencia: PreferenciaComposicion): string {
+    return this.translateService.instant(`COMMON.COMPOSITION.${preferencia}`);
+  }
+
+  obtenerEtiquetaObjetivo(valor: Exclude<ObjetivoNutricional, null>): string {
+    return this.translateService.instant(`COMMON.GOALS.${valor}`);
+  }
+
+  obtenerMensajePlatosSeleccionados(): string {
+    return this.translateService.instant('MENU.SELECTED_PLATES', {
+      count: this.obtenerCantidadTotalItems()
+    });
+  }
+
+  obtenerMensajeTotalAcumulado(): string {
+    return this.translateService.instant('MENU.TOTAL_ACCUMULATED', {
+      total: this.formatearMoneda(this.obtenerTotalSeleccionActual())
+    });
+  }
+
+  obtenerMensajeAhorroSuscripcion(): string {
+    return this.translateService.instant('MENU.SUBSCRIPTION_SAVINGS', {
+      amount: this.formatearMoneda(this.obtenerAhorroPotencialConSuscripcion())
+    });
+  }
+
+  obtenerTextoAccionPrincipal(): string {
+    if (!this.suscripcionActiva) {
+      return this.translateService.instant('COMMON.ACTIONS.CONTINUE');
+    }
+
+    return this.tienePedidoSemanalPrevio()
+      ? this.translateService.instant('COMMON.ACTIONS.MODIFY_SELECTION')
+      : this.translateService.instant('COMMON.ACTIONS.CONTINUE');
+  }
+
+  mostrarAhorroSuscripcion(): boolean {
+    return !this.suscripcionActiva && this.obtenerTotalSeleccionActual() > 0;
+  }
+
+  filtrarPlatos(): void {
+    const terminoBusquedaNormalizado = this.terminoBusqueda.trim().toLowerCase();
+
+    this.platosFiltrados = this.platos.filter(plato => {
+      const macros = plato.nutrition.macronutrients;
+
+      const coincideCategoria =
+        this.categoriaSeleccionada === 'Todas' ||
+        plato.category === this.categoriaSeleccionada;
+
+      const categoriaPermitidaSuscripcion =
+        !this.suscripcionActiva || plato.category === 'Entrante' || plato.category === 'Principal';
+
+      const coincideAlergeno =
+        this.alergenosSeleccionados.length === 0 ||
+        !this.alergenosSeleccionados.some(alergeno => plato.allergens.includes(alergeno));
+
+      const coincideBusqueda =
+        terminoBusquedaNormalizado === '' ||
+        plato.name.toLowerCase().includes(terminoBusquedaNormalizado);
+
+      let coincideObjetivoNutricional = true;
+
+      if (this.objetivoNutricionalSeleccionado === 'perder-peso') {
+        coincideObjetivoNutricional =
+          plato.calories <= 350 &&
+          macros.fat_g <= 15 &&
+          macros.fiber_g >= 3;
+      }
+
+      if (this.objetivoNutricionalSeleccionado === 'masa-muscular') {
+        coincideObjetivoNutricional =
+          macros.protein_g >= 20 &&
+          plato.calories >= 300;
+      }
+
+      let coincidePreferenciasComposicion = true;
+
+      if (this.preferenciasComposicionSeleccionadas.includes('ricos-proteina')) {
+        coincidePreferenciasComposicion =
+          coincidePreferenciasComposicion && macros.protein_g >= 20;
+      }
+
+      if (this.preferenciasComposicionSeleccionadas.includes('bajos-grasas')) {
+        coincidePreferenciasComposicion =
+          coincidePreferenciasComposicion && macros.fat_g <= 10;
+      }
+
+      if (this.preferenciasComposicionSeleccionadas.includes('bajos-carbohidratos')) {
+        coincidePreferenciasComposicion =
+          coincidePreferenciasComposicion && macros.carbohydrates_g <= 30;
+      }
+
+      return (
+        coincideBusqueda &&
+        coincideCategoria &&
+        categoriaPermitidaSuscripcion &&
+        coincideAlergeno &&
+        coincideObjetivoNutricional &&
+        coincidePreferenciasComposicion
+      );
+    });
+
+    this.actualizarRecomendaciones();
+    this.actualizarTopHealthyFiltrado();
+
+    if (this.ordenHealthyActivo) {
+      this.ordenarPorHealthScore();
+    }
+  }
+
+  abrirModalFiltros(): void {
+    this.modalFiltrosAbierto = true;
+  }
+
+  cerrarModalFiltros(): void {
+    this.modalFiltrosAbierto = false;
+  }
+
+  toggleOrdenHealthy(): void {
+    this.ordenHealthyActivo = !this.ordenHealthyActivo;
+
+    if (this.ordenHealthyActivo) {
+      this.ordenarPorHealthScore();
+      return;
+    }
+
+    this.filtrarPlatos();
+  }
+
+  ordenarPorHealthScore(): void {
+    this.platosFiltrados = [...this.platosFiltrados].sort(
+      (a, b) => b.healthScore - a.healthScore
+    );
+  }
+
+  toggleAlergeno(valor: string, event: CustomEvent): void {
+    const checked = event.detail.checked;
+
+    if (checked) {
+      if (!this.alergenosSeleccionados.includes(valor)) {
+        this.alergenosSeleccionados.push(valor);
+      }
+    } else {
+      this.alergenosSeleccionados =
+        this.alergenosSeleccionados.filter(alergeno => alergeno !== valor);
+    }
+  }
+
+  togglePreferenciaComposicion(valor: PreferenciaComposicion, event: CustomEvent): void {
+    const checked = event.detail.checked;
+
+    if (checked) {
+      if (!this.preferenciasComposicionSeleccionadas.includes(valor)) {
+        this.preferenciasComposicionSeleccionadas.push(valor);
+      }
+    } else {
+      this.preferenciasComposicionSeleccionadas =
+        this.preferenciasComposicionSeleccionadas.filter(p => p !== valor);
+    }
+  }
+
+  limpiarFiltrosNutricionales(): void {
+    this.alergenosSeleccionados = [];
+    this.objetivoNutricionalSeleccionado = null;
+    this.preferenciasComposicionSeleccionadas = [];
+    this.guardarFiltrosEnPerfil();
+    this.filtrarPlatos();
+  }
+
+  aplicarFiltrosNutricionales(): void {
+    this.guardarFiltrosEnPerfil();
+    this.filtrarPlatos();
+    this.cerrarModalFiltros();
+  }
+
+  obtenerFiltrosActivos(): { tipo: string; valor: string; etiqueta: string }[] {
+    const filtros: { tipo: string; valor: string; etiqueta: string }[] = [];
+
+    if (this.categoriaSeleccionada !== 'Todas') {
+      filtros.push({
+        tipo: 'categoria',
+        valor: this.categoriaSeleccionada,
+        etiqueta: this.obtenerEtiquetaCategoria(this.categoriaSeleccionada)
+      });
+    }
+
+    this.alergenosSeleccionados.forEach(alergeno => {
+      filtros.push({
+        tipo: 'alergeno',
+        valor: alergeno,
+        etiqueta: this.translateService.instant('MENU.WITHOUT_ALLERGEN', {
+          allergen: this.obtenerEtiquetaAlergeno(alergeno)
+        })
+      });
+    });
+
+    if (this.objetivoNutricionalSeleccionado === 'perder-peso') {
+      filtros.push({
+        tipo: 'objetivo',
+        valor: 'perder-peso',
+        etiqueta: this.translateService.instant('MENU.ACTIVE_FILTERS.GOAL_LOSE_WEIGHT')
+      });
+    }
+
+    if (this.objetivoNutricionalSeleccionado === 'masa-muscular') {
+      filtros.push({
+        tipo: 'objetivo',
+        valor: 'masa-muscular',
+        etiqueta: this.translateService.instant('MENU.ACTIVE_FILTERS.GOAL_MUSCLE')
+      });
+    }
+
+    this.preferenciasComposicionSeleccionadas.forEach(preferencia => {
+      filtros.push({
+        tipo: 'preferencia',
+        valor: preferencia,
+        etiqueta: this.obtenerEtiquetaPreferencia(preferencia)
+      });
+    });
+
+    if (this.ordenHealthyActivo) {
+      filtros.push({
+        tipo: 'orden',
+        valor: 'healthy',
+        etiqueta: this.translateService.instant('MENU.ACTIVE_FILTERS.TOP_HEALTHY')
+      });
+    }
+
+    return filtros;
+  }
+
+  quitarFiltroActivo(tipo: string, valor: string): void {
+    if (tipo === 'categoria') {
+      this.categoriaSeleccionada = 'Todas';
+    }
+
+    if (tipo === 'alergeno') {
+      this.alergenosSeleccionados =
+        this.alergenosSeleccionados.filter(alergeno => alergeno !== valor);
+    }
+
+    if (tipo === 'objetivo') {
+      this.objetivoNutricionalSeleccionado = null;
+    }
+
+    if (tipo === 'preferencia') {
+      this.preferenciasComposicionSeleccionadas =
+        this.preferenciasComposicionSeleccionadas.filter(preferencia => preferencia !== valor);
+    }
+
+    if (tipo === 'orden') {
+      this.ordenHealthyActivo = false;
+    }
+
+    if (tipo !== 'categoria' && tipo !== 'orden') {
+      this.guardarFiltrosEnPerfil();
+    }
+
+    this.filtrarPlatos();
+  }
+
+  tieneRecomendaciones(): boolean {
+    return this.platosRecomendados.length > 0;
+  }
+
+  obtenerPlatosParaListado(): Plato[] {
+    const idsRecomendados = new Set(this.platosRecomendados.map(plato => plato.id));
+    return this.platosFiltrados.filter(plato => !idsRecomendados.has(plato.id));
+  }
+
+  esTopHealthyFiltrado(platoId: number): boolean {
+    return this.topHealthyFiltradosIds.includes(platoId);
   }
 
   private cargarFiltrosDesdePerfil(): void {
@@ -456,25 +762,16 @@ export class MenuPage implements OnInit {
     const tienePedidoSemanalPrevio = this.tienePedidoSemanalPrevio();
 
     if (tienePedidoSemanalPrevio && seleccionados >= this.minimoPlatosSuscripcion) {
-      this.mensajeSuscripcion =
-        `Suscripción activa. Esta es tu última selección semanal. Puedes modificarla aquí o renovarla desde Gestionar suscripción. Llevas ${seleccionados} platos.`;
+      this.mensajeSuscripcion = this.translateService.instant('MENU.BANNERS.WITH_PREVIOUS', {
+        count: seleccionados
+      });
       return;
     }
 
-    this.mensajeSuscripcion =
-      `Suscripción activa. Elige al menos ${this.minimoPlatosSuscripcion} platos para crear tu selección semanal. Llevas ${seleccionados}/${this.minimoPlatosSuscripcion}.`;
-  }
-
-  obtenerTextoAccionPrincipal(): string {
-    if (!this.suscripcionActiva) {
-      return 'Continuar';
-    }
-
-    return this.tienePedidoSemanalPrevio() ? 'Modificar selección' : 'Continuar';
-  }
-
-  mostrarAhorroSuscripcion(): boolean {
-    return !this.suscripcionActiva && this.obtenerTotalSeleccionActual() > 0;
+    this.mensajeSuscripcion = this.translateService.instant('MENU.BANNERS.NEED_MORE', {
+      minimum: this.minimoPlatosSuscripcion,
+      count: seleccionados
+    });
   }
 
   private tienePedidoSemanalPrevio(): boolean {
@@ -502,245 +799,6 @@ export class MenuPage implements OnInit {
     );
   }
 
-  filtrarPlatos(): void {
-    const terminoBusquedaNormalizado = this.terminoBusqueda.trim().toLowerCase();
-
-    this.platosFiltrados = this.platos.filter(plato => {
-      const macros = plato.nutrition.macronutrients;
-
-      const coincideCategoría =
-        this.categoriaSeleccionada === 'Todas' ||
-        plato.category === this.categoriaSeleccionada;
-
-      const categoriaPermitidaSuscripcion =
-        !this.suscripcionActiva || plato.category === 'Entrante' || plato.category === 'Principal';
-
-      const coincideAlergeno =
-        this.alergenosSeleccionados.length === 0 ||
-        !this.alergenosSeleccionados.some(alergeno => plato.allergens.includes(alergeno));
-
-      const coincideBusqueda =
-        terminoBusquedaNormalizado === '' ||
-        plato.name.toLowerCase().includes(terminoBusquedaNormalizado);
-
-      let coincideObjetivoNutricional = true;
-
-      if (this.objetivoNutricionalSeleccionado === 'perder-peso') {
-        coincideObjetivoNutricional =
-          plato.calories <= 350 &&
-          macros.fat_g <= 15 &&
-          macros.fiber_g >= 3;
-      }
-
-      if (this.objetivoNutricionalSeleccionado === 'masa-muscular') {
-        coincideObjetivoNutricional =
-          macros.protein_g >= 20 &&
-          plato.calories >= 300;
-      }
-
-      let coincidePreferenciasComposicion = true;
-
-      if (this.preferenciasComposicionSeleccionadas.includes('ricos-proteina')) {
-        coincidePreferenciasComposicion =
-          coincidePreferenciasComposicion && macros.protein_g >= 20;
-      }
-
-      if (this.preferenciasComposicionSeleccionadas.includes('bajos-grasas')) {
-        coincidePreferenciasComposicion =
-          coincidePreferenciasComposicion && macros.fat_g <= 10;
-      }
-
-      if (this.preferenciasComposicionSeleccionadas.includes('bajos-carbohidratos')) {
-        coincidePreferenciasComposicion =
-          coincidePreferenciasComposicion && macros.carbohydrates_g <= 30;
-      }
-
-      return (
-        coincideBusqueda &&
-        coincideCategoría &&
-        categoriaPermitidaSuscripcion &&
-        coincideAlergeno &&
-        coincideObjetivoNutricional &&
-        coincidePreferenciasComposicion
-      );
-    });
-
-    this.actualizarRecomendaciones();
-    this.actualizarTopHealthyFiltrado();
-
-    if (this.ordenHealthyActivo) {
-      this.ordenarPorHealthScore();
-    }
-  }
-
-  abrirModalFiltros(): void {
-    this.modalFiltrosAbierto = true;
-  }
-
-  cerrarModalFiltros(): void {
-    this.modalFiltrosAbierto = false;
-  }
-
-  toggleOrdenHealthy(): void {
-    this.ordenHealthyActivo = !this.ordenHealthyActivo;
-
-    if (this.ordenHealthyActivo) {
-      this.ordenarPorHealthScore();
-      return;
-    }
-
-    this.filtrarPlatos();
-  }
-
-  ordenarPorHealthScore(): void {
-    this.platosFiltrados = [...this.platosFiltrados].sort(
-      (a, b) => b.healthScore - a.healthScore
-    );
-  }
-
-  toggleAlergeno(valor: string, event: CustomEvent): void {
-    const checked = event.detail.checked;
-
-    if (checked) {
-      if (!this.alergenosSeleccionados.includes(valor)) {
-        this.alergenosSeleccionados.push(valor);
-      }
-    } else {
-      this.alergenosSeleccionados =
-        this.alergenosSeleccionados.filter(alergeno => alergeno !== valor);
-    }
-  }
-
-  togglePreferenciaComposicion(valor: PreferenciaComposicion, event: CustomEvent): void {
-    const checked = event.detail.checked;
-
-    if (checked) {
-      if (!this.preferenciasComposicionSeleccionadas.includes(valor)) {
-        this.preferenciasComposicionSeleccionadas.push(valor);
-      }
-    } else {
-      this.preferenciasComposicionSeleccionadas =
-        this.preferenciasComposicionSeleccionadas.filter(p => p !== valor);
-    }
-  }
-
-  limpiarFiltrosNutricionales(): void {
-    this.alergenosSeleccionados = [];
-    this.objetivoNutricionalSeleccionado = null;
-    this.preferenciasComposicionSeleccionadas = [];
-    this.guardarFiltrosEnPerfil();
-    this.filtrarPlatos();
-  }
-
-  aplicarFiltrosNutricionales(): void {
-    this.guardarFiltrosEnPerfil();
-    this.filtrarPlatos();
-    this.cerrarModalFiltros();
-  }
-
-  obtenerFiltrosActivos(): { tipo: string; valor: string; etiqueta: string }[] {
-    const filtros: { tipo: string; valor: string; etiqueta: string }[] = [];
-
-    if (this.categoriaSeleccionada !== 'Todas') {
-      filtros.push({
-        tipo: 'categoria',
-        valor: this.categoriaSeleccionada,
-        etiqueta: this.categoriaSeleccionada
-      });
-    }
-
-    this.alergenosSeleccionados.forEach(alergeno => {
-      filtros.push({
-        tipo: 'alergeno',
-        valor: alergeno,
-        etiqueta: `Sin ${alergeno}`
-      });
-    });
-
-    if (this.objetivoNutricionalSeleccionado === 'perder-peso') {
-      filtros.push({
-        tipo: 'objetivo',
-        valor: 'perder-peso',
-        etiqueta: 'Perder peso'
-      });
-    }
-
-    if (this.objetivoNutricionalSeleccionado === 'masa-muscular') {
-      filtros.push({
-        tipo: 'objetivo',
-        valor: 'masa-muscular',
-        etiqueta: 'Masa muscular'
-      });
-    }
-
-    this.preferenciasComposicionSeleccionadas.forEach(preferencia => {
-      const etiquetas: Record<string, string> = {
-        'ricos-proteina': 'Ricos en proteína',
-        'bajos-grasas': 'Bajos en grasas',
-        'bajos-carbohidratos': 'Bajos en carbohidratos'
-      };
-
-      filtros.push({
-        tipo: 'preferencia',
-        valor: preferencia,
-        etiqueta: etiquetas[preferencia] || preferencia
-      });
-    });
-
-    if (this.ordenHealthyActivo) {
-      filtros.push({
-        tipo: 'orden',
-        valor: 'healthy',
-        etiqueta: 'Top healthy'
-      });
-    }
-
-    return filtros;
-  }
-
-  quitarFiltroActivo(tipo: string, valor: string): void {
-    if (tipo === 'categoria') {
-      this.categoriaSeleccionada = 'Todas';
-    }
-
-    if (tipo === 'alergeno') {
-      this.alergenosSeleccionados =
-        this.alergenosSeleccionados.filter(alergeno => alergeno !== valor);
-    }
-
-    if (tipo === 'objetivo') {
-      this.objetivoNutricionalSeleccionado = null;
-    }
-
-    if (tipo === 'preferencia') {
-      this.preferenciasComposicionSeleccionadas =
-        this.preferenciasComposicionSeleccionadas.filter(preferencia => preferencia !== valor);
-    }
-
-    if (tipo === 'orden') {
-      this.ordenHealthyActivo = false;
-    }
-
-    if (tipo !== 'categoria' && tipo !== 'orden') {
-      this.guardarFiltrosEnPerfil();
-    }
-
-    this.filtrarPlatos();
-  }
-
-  tieneRecomendaciones(): boolean {
-    return this.platosRecomendados.length > 0;
-  }
-
-  obtenerPlatosParaListado(): Plato[] {
-    const idsRecomendados = new Set(this.platosRecomendados.map(plato => plato.id));
-    return this.platosFiltrados.filter(plato => !idsRecomendados.has(plato.id));
-  }
-
-  esTopHealthyFiltrado(platoId: number): boolean {
-    return this.topHealthyFiltradosIds.includes(platoId);
-  }
-
   private actualizarRecomendaciones(): void {
     const perfil = this.profileService.obtenerPerfil();
     const hayPreferencias =
@@ -757,7 +815,7 @@ export class MenuPage implements OnInit {
     const platosBase =
       this.platosFiltrados.length > 0
         ? this.platosFiltrados
-        : this.platos.filter(plato => this.esCompatibleConAlérgenos(plato));
+        : this.platos.filter(plato => this.esCompatibleConAlergenos(plato));
 
     this.platosRecomendados = [...platosBase]
       .sort((a, b) => this.calcularPuntuacionRecomendacion(b) - this.calcularPuntuacionRecomendacion(a))
@@ -775,7 +833,7 @@ export class MenuPage implements OnInit {
     const macros = plato.nutrition.macronutrients;
     let puntuacion = plato.healthScore * 10;
 
-    if (this.esCompatibleConAlérgenos(plato)) {
+    if (this.esCompatibleConAlergenos(plato)) {
       puntuacion += 80;
     } else {
       puntuacion -= 500;
@@ -823,20 +881,20 @@ export class MenuPage implements OnInit {
     return puntuacion;
   }
 
-  private esCompatibleConAlérgenos(plato: Plato): boolean {
+  private esCompatibleConAlergenos(plato: Plato): boolean {
     return !this.alergenosSeleccionados.some(alergeno => plato.allergens.includes(alergeno));
   }
 
   private construirMensajeRecomendacion(): string {
     if (this.objetivoNutricionalSeleccionado === 'perder-peso') {
-      return 'Recomendaciones ajustadas a tu objetivo de perder peso y a tus preferencias guardadas.';
+      return this.translateService.instant('MENU.WEIGHT_LOSS_RECOMMENDATION');
     }
 
     if (this.objetivoNutricionalSeleccionado === 'masa-muscular') {
-      return 'Recomendaciones ajustadas a tu objetivo de masa muscular y a tus preferencias guardadas.';
+      return this.translateService.instant('MENU.MUSCLE_RECOMMENDATION');
     }
 
-    return 'Recomendaciones automáticas según tus alérgenos y preferencias de composición.';
+    return this.translateService.instant('MENU.GENERIC_RECOMMENDATION');
   }
 
   private actualizarTopHealthyFiltrado(): void {
@@ -845,6 +903,11 @@ export class MenuPage implements OnInit {
       .slice(0, 3)
       .map(plato => plato.id);
   }
+
+  private formatearMoneda(value: number): string {
+    return new Intl.NumberFormat(this.languageService.getCurrentLocale(), {
+      style: 'currency',
+      currency: 'EUR'
+    }).format(value);
+  }
 }
-
-

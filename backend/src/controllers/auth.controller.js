@@ -16,7 +16,7 @@ async function login(req, res) {
     const password = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
 
     if (!emailValido(email) || !passwordValida(password)) {
-      res.status(400).json({ message: 'Introduce un email válido y una password de al menos 6 caracteres.' });
+      res.status(400).json({ message: 'Introduce un email valido y una password de al menos 6 caracteres.' });
       return;
     }
 
@@ -60,7 +60,7 @@ async function register(req, res) {
     const password = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
 
     if (nombre.length < 2 || !emailValido(email) || !passwordValida(password)) {
-      res.status(400).json({ message: 'Nombre válido, email válido y password de al menos 6 caracteres son obligatorios.' });
+      res.status(400).json({ message: 'Nombre valido, email valido y password de al menos 6 caracteres son obligatorios.' });
       return;
     }
 

@@ -25,6 +25,7 @@ import {
   IonToolbar
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { CarritoItem } from '../../models/carrito-item.model';
 import { CarritoService } from '../../services/carrito.service';
 import { OrderService } from '../../services/order.service';
@@ -35,6 +36,7 @@ import { MetodoPagoPedido, Pedido } from '../../models/order.model';
 import { UserSessionService } from '../../services/user-session.service';
 import { FirstOrderService } from '../../services/first-order.service';
 import { DiaEntregaSemanal } from '../../models/subscription.model';
+import { LanguageService } from '../../services/language.service';
 
 interface DireccionEntrega {
   id: number;
@@ -71,7 +73,8 @@ interface DireccionEntrega {
     IonRadio,
     IonInput,
     IonButton,
-    IonFooter
+    IonFooter,
+    TranslateModule
   ]
 })
 export class PagoPage implements OnInit {
@@ -90,14 +93,14 @@ export class PagoPage implements OnInit {
   fechaCaducidad = '';
   cvv = '';
 
-  readonly diasEntregaSuscripcion: { valor: DiaEntregaSemanal; etiqueta: string }[] = [
-    { valor: 'lunes', etiqueta: 'Lunes' },
-    { valor: 'martes', etiqueta: 'Martes' },
-    { valor: 'miercoles', etiqueta: 'Miércoles' },
-    { valor: 'jueves', etiqueta: 'Jueves' },
-    { valor: 'viernes', etiqueta: 'Viernes' },
-    { valor: 'sabado', etiqueta: 'Sábado' },
-    { valor: 'domingo', etiqueta: 'Domingo' }
+  readonly diasEntregaSuscripcion: DiaEntregaSemanal[] = [
+    'lunes',
+    'martes',
+    'miercoles',
+    'jueves',
+    'viernes',
+    'sabado',
+    'domingo'
   ];
 
   constructor(
@@ -107,7 +110,9 @@ export class PagoPage implements OnInit {
     private subscriptionService: SubscriptionService,
     private orderService: OrderService,
     private userSessionService: UserSessionService,
-    private firstOrderService: FirstOrderService
+    private firstOrderService: FirstOrderService,
+    private translateService: TranslateService,
+    private languageService: LanguageService
   ) {}
 
   ngOnInit(): void {
@@ -156,6 +161,10 @@ export class PagoPage implements OnInit {
     return this.carritoService.obtenerTotal();
   }
 
+  obtenerEtiquetaDia(diaEntrega: DiaEntregaSemanal): string {
+    return this.translateService.instant(`COMMON.DAYS.${diaEntrega}`);
+  }
+
   obtenerFechaEntregaResumen(): string {
     const fechaEntrega = new Date(this.calcularFechaEntregaProgramada());
 
@@ -163,7 +172,7 @@ export class PagoPage implements OnInit {
       return '';
     }
 
-    const fechaFormateada = new Intl.DateTimeFormat('es-ES', {
+    const fechaFormateada = new Intl.DateTimeFormat(this.languageService.getCurrentLocale(), {
       weekday: 'long',
       day: '2-digit',
       month: '2-digit',
@@ -312,6 +321,12 @@ export class PagoPage implements OnInit {
     return true;
   }
 
+  obtenerTextoBotonConfirmacion(): string {
+    return this.esPedidoSuscripcion()
+      ? this.translateService.instant('COMMON.ACTIONS.SAVE_CHANGES')
+      : this.translateService.instant('COMMON.ACTIONS.CONFIRM_ORDER');
+  }
+
   async confirmarPedido(): Promise<void> {
     this.intentoConfirmarPedido = true;
 
@@ -382,10 +397,6 @@ export class PagoPage implements OnInit {
     return [direccion.calleNumero, ciudadProvincia, direccion.telefono]
       .filter(Boolean)
       .join(' · ');
-  }
-
-  private obtenerNumeroTarjetaSoloDigitos(): string {
-    return this.numeroTarjeta.replace(/\D/g, '');
   }
 
   private cargarTarjetaDesdePerfil(tarjeta: TarjetaPrincipal | null): void {
@@ -506,16 +517,6 @@ export class PagoPage implements OnInit {
       .sort((a, b) => b.getTime() - a.getTime());
 
     return fechas[0] ?? null;
-  }
-
-  private esMismoDiaOPosteriorAnterior(fechaCandidata: Date, ultimaEntrega: Date): boolean {
-    const candidata = new Date(fechaCandidata);
-    const ultima = new Date(ultimaEntrega);
-
-    candidata.setHours(0, 0, 0, 0);
-    ultima.setHours(0, 0, 0, 0);
-
-    return candidata.getTime() <= ultima.getTime();
   }
 
   private avanzarHastaSemanaPosterior(

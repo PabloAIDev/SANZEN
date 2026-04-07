@@ -4,8 +4,10 @@
       <ion-back-button defaultHref="/inicio"></ion-back-button>
     </ion-buttons>
     <ion-title>
-      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+      <img class="app-header-logo" src="assets/img/letrasSanzen.png" alt="SANZEN" />
     </ion-title>
+    <ion-buttons slot="end">
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -13,20 +15,17 @@
   <section class="hero-section">
     <div class="hero-badge">
       <ion-icon name="leaf-outline"></ion-icon>
-      <span>Primer pedido, usuarios registrados y renovación</span>
+      <span>{{ 'HOW.HERO_BADGE' | translate }}</span>
     </div>
 
-    <h1>Así funciona SANZEN</h1>
-    <p>
-      SANZEN combina primer pedido, perfil nutricional, pedido individual, suscripción semanal,
-      pedidos posteriores y seguimiento en un único flujo.
-    </p>
+    <h1>{{ 'HOW.HERO_TITLE' | translate }}</h1>
+    <p>{{ 'HOW.HERO_TEXT' | translate }}</p>
   </section>
 
   <section class="steps-section">
     <div class="section-heading">
-      <span class="eyebrow">7 pasos</span>
-      <h2>Así funciona tu pedido de principio a fin</h2>
+      <span class="eyebrow">{{ 'HOW.STEPS_LABEL' | translate }}</span>
+      <h2>{{ 'HOW.STEPS_TITLE' | translate }}</h2>
     </div>
 
     <ion-card class="step-card" *ngFor="let paso of pasos; let i = index">
@@ -38,8 +37,8 @@
           <span class="step-number">{{ i + 1 < 10 ? `0${i + 1}` : i + 1 }}</span>
         </div>
 
-        <h3>{{ paso.titulo }}</h3>
-        <p>{{ paso.texto }}</p>
+        <h3>{{ paso.tituloKey | translate }}</h3>
+        <p>{{ paso.textoKey | translate }}</p>
       </ion-card-content>
     </ion-card>
   </section>
@@ -51,15 +50,15 @@
       [class.reverse]="i % 2 !== 0"
     >
       <div class="visual-image">
-        <img [src]="bloque.imagen" [alt]="bloque.titulo" />
+        <img [src]="bloque.imagen" [alt]="bloque.tituloKey | translate" />
       </div>
 
       <div class="visual-copy">
         <div class="copy-icon">
           <ion-icon [name]="i === 2 ? 'checkmark-circle-outline' : 'restaurant-outline'"></ion-icon>
         </div>
-        <h3>{{ bloque.titulo }}</h3>
-        <p>{{ bloque.texto }}</p>
+        <h3>{{ bloque.tituloKey | translate }}</h3>
+        <p>{{ bloque.textoKey | translate }}</p>
       </div>
     </div>
   </section>

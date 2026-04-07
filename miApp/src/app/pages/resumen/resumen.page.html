@@ -1,11 +1,13 @@
-﻿<ion-header>
+<ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/menu"></ion-back-button>
     </ion-buttons>
     <ion-title>
-      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+      <img class="app-header-logo" src="assets/img/letrasSanzen.png" alt="SANZEN" />
     </ion-title>
+    <ion-buttons slot="end">
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -20,9 +22,9 @@
 
           <ion-label>
             <h2>{{ item.plato.name }}</h2>
-            <p>Precio: {{ item.plato.price | currency:'EUR' }}</p>
-            <p>Cantidad: {{ item.cantidad }}</p>
-            <p>Subtotal: {{ obtenerSubtotal(item) | currency:'EUR' }}</p>
+            <p>{{ 'COMMON.LABELS.PRICE' | translate }}: {{ item.plato.price | currency:'EUR' }}</p>
+            <p>{{ 'COMMON.LABELS.QUANTITY' | translate }}: {{ item.cantidad }}</p>
+            <p>{{ 'COMMON.LABELS.SUBTOTAL' | translate }}: {{ obtenerSubtotal(item) | currency:'EUR' }}</p>
           </ion-label>
 
           <ion-button fill="outline" slot="end" (click)="disminuirCantidad(item.plato.id)">
@@ -38,7 +40,7 @@
             fill="outline"
             slot="end"
             (click)="eliminarPlato(item.plato.id)">
-            Eliminar
+            {{ 'COMMON.ACTIONS.DELETE' | translate }}
           </ion-button>
         </ion-item>
       }
@@ -47,37 +49,40 @@
     <div class="ion-padding-top">
       @if (suscripcionActiva() && !suscripcionCompleta()) {
         <p>
-          Debes escoger al menos {{ obtenerPlanSuscripcion() }} unidades para tu suscripción.
-          Llevas {{ obtenerCantidadSeleccionadaSuscripcion() }}/{{ obtenerPlanSuscripcion() }} y te faltan
-          {{ obtenerPlatosPendientesSuscripcion() }}.
+          {{ 'SUMMARY.SUBSCRIPTION_INCOMPLETE' | translate:{
+            plan: obtenerPlanSuscripcion(),
+            selected: obtenerCantidadSeleccionadaSuscripcion(),
+            remaining: obtenerPlatosPendientesSuscripcion()
+          } }}
         </p>
       }
 
       @if (suscripcionActiva() && obtenerDescuentoSuscripcion() > 0) {
-        <p>Subtotal suscripción: {{ obtenerSubtotalSuscripcionSinPostres() | currency:'EUR' }}</p>
+        <p>{{ 'SUMMARY.SUBSCRIPTION_SUBTOTAL' | translate:{ amount: (obtenerSubtotalSuscripcionSinPostres() | currency:'EUR') } }}</p>
         <p>
-          Descuento suscripción ({{ obtenerPorcentajeDescuentoSuscripcion() }}%):
-          -{{ obtenerDescuentoSuscripcion() | currency:'EUR' }}
+          {{ 'SUMMARY.SUBSCRIPTION_DISCOUNT' | translate:{
+            percent: obtenerPorcentajeDescuentoSuscripcion(),
+            amount: (obtenerDescuentoSuscripcion() | currency:'EUR')
+          } }}
         </p>
-        <p>Total suscripción: {{ obtenerTotalSuscripcionConDescuento() | currency:'EUR' }}</p>
-        <p>Postres extra: {{ obtenerTotalPostresExtra() | currency:'EUR' }}</p>
+        <p>{{ 'SUMMARY.SUBSCRIPTION_TOTAL' | translate:{ amount: (obtenerTotalSuscripcionConDescuento() | currency:'EUR') } }}</p>
+        <p>{{ 'SUMMARY.EXTRA_DESSERTS' | translate:{ amount: (obtenerTotalPostresExtra() | currency:'EUR') } }}</p>
       } @else {
-        <p>Subtotal original: {{ obtenerSubtotalSinDescuento() | currency:'EUR' }}</p>
+        <p>{{ 'SUMMARY.ORIGINAL_SUBTOTAL' | translate:{ amount: (obtenerSubtotalSinDescuento() | currency:'EUR') } }}</p>
       }
 
-      <h2>Total: {{ obtenerTotal() | currency:'EUR' }}</h2>
+      <h2>{{ 'SUMMARY.TOTAL' | translate:{ amount: (obtenerTotal() | currency:'EUR') } }}</h2>
 
       @if (!suscripcionActiva() && !cumplePedidoMinimoPlatosSueltos()) {
         <p>
-          Pedido mínimo de 20 €. Te faltan
-          {{ obtenerImporteFaltantePedidoMinimo() | currency:'EUR' }} para continuar.
+          {{ 'SUMMARY.MIN_ORDER_MISSING' | translate:{ amount: (obtenerImporteFaltantePedidoMinimo() | currency:'EUR') } }}
         </p>
       }
     </div>
 
     @if (suscripcionActiva() && postresDisponibles.length > 0) {
       <div class="ion-padding-top">
-        <h2>Añadir postres al pedido</h2>
+        <h2>{{ 'SUMMARY.ADD_DESSERTS' | translate }}</h2>
         <ion-list>
           @for (postre of postresDisponibles; track postre.id) {
             <ion-item>
@@ -107,18 +112,17 @@
 
     <div class="ion-padding-top">
       <ion-button expand="block" fill="outline" color="medium" (click)="vaciarCarrito()">
-        {{ suscripcionActiva() ? 'Vaciar selección' : 'Vaciar carrito' }}
+        {{ suscripcionActiva() ? ('COMMON.ACTIONS.EMPTY_SELECTION' | translate) : ('COMMON.ACTIONS.EMPTY_CART' | translate) }}
       </ion-button>
 
       <ion-button
         expand="block"
         (click)="continuarAlPago()"
         [disabled]="(suscripcionActiva() && !suscripcionCompleta()) || !cumplePedidoMinimoPlatosSueltos()">
-        Ir al pago
+        {{ 'COMMON.ACTIONS.GO_TO_PAYMENT' | translate }}
       </ion-button>
     </div>
   } @else {
-    <p>El carrito está vacío.</p>
+    <p>{{ 'SUMMARY.EMPTY_CART' | translate }}</p>
   }
 </ion-content>
-

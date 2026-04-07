@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { PagoPage } from './pago.page';
 import { CarritoService } from '../../services/carrito.service';
@@ -7,6 +8,7 @@ import { ProfileService } from '../../services/profile.service';
 import { SubscriptionService } from '../../services/subscription.service';
 import { OrderService } from '../../services/order.service';
 import { UserSessionService } from '../../services/user-session.service';
+import { FirstOrderService } from '../../services/first-order.service';
 
 describe('PagoPage', () => {
   let component: PagoPage;
@@ -14,7 +16,7 @@ describe('PagoPage', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PagoPage],
+      imports: [PagoPage, TranslateModule.forRoot()],
       providers: [
         {
           provide: Router,
@@ -114,6 +116,16 @@ describe('PagoPage', () => {
           provide: UserSessionService,
           useValue: {
             haySesionActiva: jasmine.createSpy('haySesionActiva').and.returnValue(true)
+          }
+        },
+        {
+          provide: FirstOrderService,
+          useValue: {
+            estaActivo: jasmine.createSpy('estaActivo').and.returnValue(false),
+            esModoIndividual: jasmine.createSpy('esModoIndividual').and.returnValue(false),
+            esModoSuscripcion: jasmine.createSpy('esModoSuscripcion').and.returnValue(false),
+            guardarSuscripcionTemporal: jasmine.createSpy('guardarSuscripcionTemporal'),
+            finalizarProceso: jasmine.createSpy('finalizarProceso')
           }
         }
       ]

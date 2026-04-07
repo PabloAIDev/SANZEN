@@ -309,8 +309,7 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
     const user = userRows[0] ?? null;
     context.user = user
       ? {
-          name: normalizarTexto(user.nombre),
-          email: normalizarTexto(user.email)
+          name: normalizarTexto(user.nombre)
         }
       : null;
 

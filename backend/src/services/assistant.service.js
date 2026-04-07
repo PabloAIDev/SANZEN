@@ -1,5 +1,6 @@
 const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const OPENAI_TIMEOUT_MS = Number(process.env.OPENAI_TIMEOUT_MS || 12000);
 const MAX_HISTORY_MESSAGES = 6;
 const MAX_HISTORY_TEXT_LENGTH = 400;
 const ALLOWED_TARGETS = ['/inicio', '/menu', '/resumen', '/pago', '/perfil', '/suscripcion', '/mis-pedidos', '/como-funciona', '/login'];
@@ -148,8 +149,10 @@ async function generateAssistantResponse({ message, context, history = [] }) {
         extraContext: buildHealthOpenAiExtraContext(matchedHealthQuery, candidates)
       });
 
-      if (typeof content === 'string' && content.trim() !== '') {
-        return sanitizeAssistantResponse(parseAssistantJson(content), context, 'openai');
+      const openAiResponse = buildOpenAiResponseOrNull(content, context);
+
+      if (openAiResponse) {
+        return openAiResponse;
       }
 
       return fallbackHealthResponse;
@@ -178,11 +181,13 @@ async function generateAssistantResponse({ message, context, history = [] }) {
       extraContext: buildGenericOpenAiExtraContext(normalizedMessage, context)
     });
 
-    if (typeof content !== 'string' || content.trim() === '') {
+    const openAiResponse = buildOpenAiResponseOrNull(content, context);
+
+    if (!openAiResponse) {
       return buildFallbackResponse(message, context, sanitizedHistory, 'fallback');
     }
 
-    return sanitizeAssistantResponse(parseAssistantJson(content), context, 'openai');
+    return openAiResponse;
   } catch (error) {
     console.error('Error al llamar a OpenAI:', error);
     return buildFallbackResponse(message, context, sanitizedHistory, 'fallback');
@@ -190,8 +195,12 @@ async function generateAssistantResponse({ message, context, history = [] }) {
 }
 
 async function requestOpenAi({ message, context, history, extraContext = null }) {
+  const timeoutSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+    ? AbortSignal.timeout(OPENAI_TIMEOUT_MS)
+    : undefined;
   const response = await fetch(OPENAI_API_URL, {
     method: 'POST',
+    signal: timeoutSignal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
@@ -255,7 +264,7 @@ function buildModelContext(context, extraContext = null) {
   return {
     screen: context.screen,
     userAuthenticated: context.userAuthenticated,
-    user: context.user ? { name: context.user.name, email: context.user.email } : null,
+    user: context.user?.name ? { name: context.user.name } : null,
     profile: {
       name: context.profile.name,
       allergies: context.profile.allergies,
@@ -406,20 +415,59 @@ function parseAssistantJson(content) {
   }
 }
 
+function isUsableAssistantPayload(response) {
+  return Boolean(
+    response &&
+    typeof response === 'object' &&
+    !Array.isArray(response) &&
+    (
+      (typeof response.message === 'string' && response.message.trim() !== '') ||
+      Array.isArray(response.actions)
+    )
+  );
+}
+
+function buildOpenAiResponseOrNull(content, context) {
+  if (typeof content !== 'string' || content.trim() === '') {
+    return null;
+  }
+
+  const parsed = parseAssistantJson(content);
+  return isUsableAssistantPayload(parsed)
+    ? sanitizeAssistantResponse(parsed, context, 'openai')
+    : null;
+}
+
 function sanitizeAssistantResponse(response, context, source) {
-  const message = typeof response?.message === 'string' && response.message.trim() !== '' ? response.message.trim() : defaultMessage(context);
+  const message = sanitizeMessage(response?.message) || defaultMessage(context);
   const actions = Array.isArray(response?.actions)
     ? response.actions
         .filter((action) => action && action.type === 'navigate' && typeof action.target === 'string')
         .map((action) => ({
           type: 'navigate',
           target: sanitizeTarget(action.target),
-          label: typeof action.label === 'string' && action.label.trim() !== '' ? action.label.trim() : buildLabelForTarget(action.target)
+          label: sanitizeActionLabel(action.label, action.target)
         }))
         .filter((action) => action.target !== null)
         .slice(0, 2)
     : [];
   return { message, actions, source };
+}
+
+function sanitizeMessage(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.trim().replace(/\s+/g, ' ').slice(0, 800);
+}
+
+function sanitizeActionLabel(label, target) {
+  const sanitizedLabel = typeof label === 'string'
+    ? label.trim().replace(/\s+/g, ' ').slice(0, 40)
+    : '';
+
+  return sanitizedLabel || buildLabelForTarget(target);
 }
 
 function normalizeHistory(history) {
@@ -650,7 +698,9 @@ async function buildHealthSupportResponse({ message, normalizedMessage, context,
       extraContext: buildHealthOpenAiExtraContext(resolvedHealthQuery, candidates)
     });
 
-    if (typeof content !== 'string' || content.trim() === '') {
+    const openAiResponse = buildOpenAiResponseOrNull(content, context);
+
+    if (!openAiResponse) {
       return buildResponse(
         buildHealthSupportFallbackMessage(resolvedHealthQuery, candidates, context.profile),
         [{ type: 'navigate', target: '/menu', label: 'Ver menu' }],
@@ -658,7 +708,7 @@ async function buildHealthSupportResponse({ message, normalizedMessage, context,
       );
     }
 
-    return sanitizeAssistantResponse(parseAssistantJson(content), context, 'openai');
+    return openAiResponse;
   } catch (error) {
     console.error('Error al resolver consulta de salud con OpenAI:', error);
     return buildResponse(
@@ -799,11 +849,11 @@ function parseStructuredCatalogQuery(message) {
   const includeTerms = extractCatalogTerms(message, nutrientQuery, false);
   const excludeTerms = extractCatalogTerms(message, nutrientQuery, true);
 
-  if (!nutrientQuery && includeTerms.length === 0 && excludeTerms.length === 0 && !specialQuery.vegetarian && !specialQuery.dinner) {
+  if (!nutrientQuery && includeTerms.length === 0 && excludeTerms.length === 0 && !specialQuery.vegetarian && !specialQuery.dinner && !specialQuery.light) {
     return null;
   }
 
-  if (!mentionsCatalogScope(message) && !nutrientQuery && includeTerms.length === 0 && excludeTerms.length === 0 && !specialQuery.vegetarian && !specialQuery.dinner) {
+  if (!mentionsCatalogScope(message) && !nutrientQuery && includeTerms.length === 0 && excludeTerms.length === 0 && !specialQuery.vegetarian && !specialQuery.dinner && !specialQuery.light) {
     return null;
   }
 
@@ -812,14 +862,16 @@ function parseStructuredCatalogQuery(message) {
     includeTerms,
     excludeTerms,
     vegetarian: specialQuery.vegetarian,
-    dinner: specialQuery.dinner
+    dinner: specialQuery.dinner,
+    light: specialQuery.light
   };
 }
 
 function detectSpecialCatalogQuery(message) {
   return {
     vegetarian: /\bvegetarian[oa]s?\b|\bvegano?s?\b/.test(message),
-    dinner: /\bcenar\b|\bcena\b/.test(message)
+    dinner: /\bcenar\b|\bcena\b/.test(message),
+    light: /\bliger[oa]s?\b|\blight\b/.test(message)
   };
 }
 
@@ -833,12 +885,13 @@ function getOpenRecommendationCandidates(message, context) {
     includeTerms,
     excludeTerms,
     vegetarian: specialQuery.vegetarian,
-    dinner: specialQuery.dinner
+    dinner: specialQuery.dinner,
+    light: specialQuery.light
   };
 
   let candidates = getCompatibleCatalog(context);
 
-  if (query.vegetarian || query.dinner || query.includeTerms.length || query.excludeTerms.length || query.nutrientQuery) {
+  if (query.vegetarian || query.dinner || query.light || query.includeTerms.length || query.excludeTerms.length || query.nutrientQuery) {
     candidates = candidates.filter((dish) => matchesStructuredCatalogQuery(dish, query));
   }
 
@@ -964,6 +1017,13 @@ function buildDishSearchText(dish) {
 
 function orderStructuredCatalogMatches(dishes, query, profile) {
   return [...dishes].sort((left, right) => {
+    if (query.light) {
+      const caloriesDelta = Number(left.calories ?? 0) - Number(right.calories ?? 0);
+      if (caloriesDelta !== 0) {
+        return caloriesDelta;
+      }
+    }
+
     if (query.dinner) {
       const dinnerDelta = Number(isDinnerFriendlyDish(right)) - Number(isDinnerFriendlyDish(left));
       if (dinnerDelta !== 0) {
@@ -1015,8 +1075,21 @@ function buildStructuredCatalogIntro(query, profile) {
     return `Los platos vegetarianos del menu que mejor encajan para cenar${profileText} son`;
   }
 
+  if (query.vegetarian && query.light) {
+    return `Los platos vegetarianos mas ligeros del menu que mejor encajan contigo${profileText} son`;
+  }
+
   if (query.vegetarian) {
     return `Los platos vegetarianos del menu que mejor encajan contigo${profileText} son`;
+  }
+
+  if (query.light && query.dinner && query.nutrientQuery) {
+    const amountText = query.nutrientQuery.direction === 'low' ? `con menos ${query.nutrientQuery.label}` : `con mas ${query.nutrientQuery.label}`;
+    return `Los platos del menu mas ligeros, para cenar y ${amountText} que mejor encajan contigo${profileText} son`;
+  }
+
+  if (query.light && query.dinner) {
+    return `Los platos del menu mas ligeros que mejor encajan para cenar${profileText} son`;
   }
 
   if (query.dinner && query.nutrientQuery) {
@@ -1034,6 +1107,23 @@ function buildStructuredCatalogIntro(query, profile) {
 
   if (query.dinner) {
     return `Los platos del menu que mejor encajan para cenar${profileText} son`;
+  }
+
+  if (query.light && query.nutrientQuery) {
+    const amountText = query.nutrientQuery.direction === 'low' ? `con menos ${query.nutrientQuery.label}` : `con mas ${query.nutrientQuery.label}`;
+    return `Los platos del menu mas ligeros y ${amountText} que mejor encajan contigo${profileText} son`;
+  }
+
+  if (query.light && query.includeTerms.length) {
+    return `Los platos del menu ${describeCatalogTerms(query.includeTerms, false)} y mas ligeros que mejor encajan contigo${profileText} son`;
+  }
+
+  if (query.light && query.excludeTerms.length) {
+    return `Los platos del menu ${describeCatalogTerms(query.excludeTerms, true)} y mas ligeros que mejor encajan contigo${profileText} son`;
+  }
+
+  if (query.light) {
+    return `Los platos del menu mas ligeros que mejor encajan contigo${profileText} son`;
   }
 
   if (query.nutrientQuery) {
@@ -1070,6 +1160,22 @@ function describeCatalogQuery(query) {
     return 'vegetarianos y adecuados para cenar';
   }
 
+  if (query.vegetarian && query.light) {
+    return 'vegetarianos y mas ligeros';
+  }
+
+  if (query.light && query.dinner && query.includeTerms.length) {
+    return `${describeCatalogTerms(query.includeTerms, false)} y mas ligeros, adecuados para cenar`;
+  }
+
+  if (query.light && query.dinner && query.excludeTerms.length) {
+    return `${describeCatalogTerms(query.excludeTerms, true)} y mas ligeros, adecuados para cenar`;
+  }
+
+  if (query.light && query.dinner) {
+    return 'mas ligeros y adecuados para cenar';
+  }
+
   if (query.vegetarian) {
     return 'vegetarianos';
   }
@@ -1084,6 +1190,22 @@ function describeCatalogQuery(query) {
 
   if (query.dinner) {
     return 'adecuados para cenar';
+  }
+
+  if (query.light && query.nutrientQuery) {
+    return `mas ligeros y ${query.nutrientQuery.direction === 'low' ? 'con menos' : 'con mas'} ${query.nutrientQuery.label}`;
+  }
+
+  if (query.light && query.includeTerms.length) {
+    return `${describeCatalogTerms(query.includeTerms, false)} y mas ligeros`;
+  }
+
+  if (query.light && query.excludeTerms.length) {
+    return `${describeCatalogTerms(query.excludeTerms, true)} y mas ligeros`;
+  }
+
+  if (query.light) {
+    return 'mas ligeros';
   }
 
   if (query.nutrientQuery && query.includeTerms.length) {
@@ -1279,4 +1401,14 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
 }
 
-module.exports = { generateAssistantResponse };
+module.exports = {
+  generateAssistantResponse,
+  __test__: {
+    buildModelContext,
+    sanitizeAssistantResponse,
+    sanitizeTarget,
+    parseAssistantJson,
+    isUsableAssistantPayload,
+    buildOpenAiResponseOrNull
+  }
+};

@@ -1,71 +1,75 @@
-﻿<ion-header class="perfil-header">
+<ion-header class="perfil-header">
   <ion-toolbar>
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/menu"></ion-back-button>
     </ion-buttons>
     <ion-title>
-      <img class="app-header-logo" src="assets/img/logoSanzen.png" alt="SANZEN" />
+      <img class="app-header-logo" src="assets/img/letrasSanzen.png" alt="SANZEN" />
     </ion-title>
+    <ion-buttons slot="end">
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true" class="perfil-content">
   <div class="perfil-shell">
     <section class="hero-section">
-      <h1>Tu perfil alimentario</h1>
-      <p>Gestiona los datos personales, nutricionales y de pago de tu cuenta.</p>
+      <h1>{{ 'PROFILE.HERO_TITLE' | translate }}</h1>
+      <p>{{ 'PROFILE.HERO_TEXT' | translate }}</p>
       @if (usuarioActual) {
-        <ion-note color="medium">Sesión activa: {{ usuarioActual.nombre }} · {{ usuarioActual.email }}</ion-note>
+        <ion-note color="medium">
+          {{ 'PROFILE.SESSION_ACTIVE' | translate:{ name: usuarioActual.nombre, email: usuarioActual.email } }}
+        </ion-note>
       }
     </section>
 
     <ion-card class="perfil-card">
       <ion-card-content>
         <div class="section-title">
-          <h2>Datos básicos</h2>
+          <h2>{{ 'COMMON.LABELS.BASIC_DATA' | translate }}</h2>
         </div>
 
         <ion-item lines="inset">
-          <ion-label position="stacked">Nombre</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.NAME' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.nombre"
             name="nombre"
             type="text"
             [attr.autocomplete]="obtenerAutocompleteBasico('name')"
-            placeholder="Tu nombre"
+            [placeholder]="'PROFILE.PLACEHOLDERS.NAME' | translate"
             (ionInput)="actualizarNombre($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('nombre')) {
-          <p class="campo-error">El nombre debe tener al menos 2 letras y no puede incluir números.</p>
+          <p class="campo-error">{{ 'PROFILE.ERRORS.NAME' | translate }}</p>
         }
 
         <ion-item lines="inset">
-          <ion-label position="stacked">Email</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.EMAIL' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.email"
             name="email"
             type="email"
             [attr.autocomplete]="obtenerAutocompleteBasico('email')"
-            placeholder="tu@email.com"
+            [placeholder]="'PROFILE.PLACEHOLDERS.EMAIL' | translate"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('email')) {
-          <p class="campo-error">Introduce un email válido.</p>
+          <p class="campo-error">{{ 'PROFILE.ERRORS.EMAIL' | translate }}</p>
         }
 
         <ion-item lines="none">
-          <ion-label position="stacked">Password</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.PASSWORD' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.password"
             name="password"
             type="password"
             [attr.autocomplete]="obtenerAutocompleteBasico('new-password')"
-            placeholder="Mínimo 6 caracteres"
+            [placeholder]="'PROFILE.PLACEHOLDERS.PASSWORD' | translate"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('password')) {
-          <p class="campo-error">La password debe tener al menos 6 caracteres.</p>
+          <p class="campo-error">{{ 'PROFILE.ERRORS.PASSWORD' | translate }}</p>
         }
       </ion-card-content>
     </ion-card>
@@ -73,22 +77,22 @@
     <ion-card class="perfil-card">
       <ion-card-content>
         <div class="section-title">
-          <h2>Alérgenos</h2>
-          <ion-note color="medium">Se usarán como referencia para tus filtros personales.</ion-note>
+          <h2>{{ 'COMMON.LABELS.ALLERGENS' | translate }}</h2>
+          <ion-note color="medium">{{ 'PROFILE.ALLERGEN_NOTE' | translate }}</ion-note>
         </div>
 
         <ion-list lines="none" class="alergenos-list">
-          @for (alergeno of alergenosDisponibles; track alergeno.nombre) {
+          @for (alergeno of alergenosDisponibles; track alergeno.valor) {
             <ion-item class="alergeno-item">
               <div class="alergeno-info">
-                <img [src]="alergeno.icono" [alt]="alergeno.nombre" class="alergeno-icono" />
-                <span>{{ alergeno.nombre }}</span>
+                <img [src]="alergeno.icono" [alt]="obtenerEtiquetaAlergeno(alergeno.valor)" class="alergeno-icono" />
+                <span>{{ obtenerEtiquetaAlergeno(alergeno.valor) }}</span>
               </div>
 
               <ion-checkbox
                 slot="end"
-                [checked]="perfil.alergenos.includes(alergeno.nombre)"
-                (ionChange)="toggleAlergeno(alergeno.nombre, $event)"
+                [checked]="perfil.alergenos.includes(alergeno.valor)"
+                (ionChange)="toggleAlergeno(alergeno.valor, $event)"
               ></ion-checkbox>
             </ion-item>
           }
@@ -99,19 +103,19 @@
     <ion-card class="perfil-card">
       <ion-card-content>
         <div class="section-title">
-          <h2>Objetivo nutricional</h2>
-          <ion-note color="medium">Puedes dejarlo sin seleccionar.</ion-note>
+          <h2>{{ 'COMMON.LABELS.NUTRITIONAL_GOAL' | translate }}</h2>
+          <ion-note color="medium">{{ 'PROFILE.GOAL_NOTE' | translate }}</ion-note>
         </div>
 
         <ion-radio-group [(ngModel)]="perfil.objetivoNutricional" name="objetivoNutricional">
           <ion-item lines="none">
-            <ion-label>Sin objetivo</ion-label>
+            <ion-label>{{ 'COMMON.GOALS.NONE' | translate }}</ion-label>
             <ion-radio slot="end" [value]="null"></ion-radio>
           </ion-item>
 
           @for (objetivo of objetivosNutricionales; track objetivo.valor) {
             <ion-item lines="none">
-              <ion-label>{{ objetivo.etiqueta }}</ion-label>
+              <ion-label>{{ obtenerEtiquetaObjetivo(objetivo.valor) }}</ion-label>
               <ion-radio slot="end" [value]="objetivo.valor"></ion-radio>
             </ion-item>
           }
@@ -122,13 +126,13 @@
     <ion-card class="perfil-card">
       <ion-card-content>
         <div class="section-title">
-          <h2>Preferencias de composición</h2>
+          <h2>{{ 'COMMON.LABELS.COMPOSITION_PREFERENCES' | translate }}</h2>
         </div>
 
         <ion-list lines="none">
           @for (preferencia of preferenciasDisponibles; track preferencia.valor) {
             <ion-item>
-              <ion-label>{{ preferencia.etiqueta }}</ion-label>
+              <ion-label>{{ obtenerEtiquetaPreferencia(preferencia.valor) }}</ion-label>
               <ion-checkbox
                 slot="end"
                 [checked]="perfil.preferenciasComposicion.includes(preferencia.valor)"
@@ -143,56 +147,56 @@
     <ion-card class="perfil-card">
       <ion-card-content>
         <div class="section-title">
-          <h2>Dirección principal</h2>
-          <ion-note color="medium">Se usará como dirección por defecto en el pago.</ion-note>
+          <h2>{{ 'COMMON.LABELS.DELIVERY_ADDRESS' | translate }}</h2>
+          <ion-note color="medium">{{ 'PROFILE.ADDRESS_NOTE' | translate }}</ion-note>
         </div>
 
         <ion-item lines="inset">
-          <ion-label position="stacked">Nombre de dirección</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.ADDRESS_NAME' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.direccionPrincipal!.nombre"
             name="direccionNombre"
             type="text"
             [attr.autocomplete]="obtenerAutocompleteDireccion('address-line1')"
-            placeholder="Casa"
+            [placeholder]="'PROFILE.PLACEHOLDERS.ADDRESS_NAME' | translate"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('direccionNombre')) {
-          <p class="campo-error">El nombre de dirección debe tener al menos 2 caracteres.</p>
+          <p class="campo-error">{{ 'PROFILE.ERRORS.ADDRESS_NAME' | translate }}</p>
         }
 
         <ion-item lines="inset">
-          <ion-label position="stacked">Calle y número</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.STREET_NUMBER' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.direccionPrincipal!.calleNumero"
             name="calleNumero"
             type="text"
             [attr.autocomplete]="obtenerAutocompleteDireccion('street-address')"
-            placeholder="Calle Mayor 12"
+            [placeholder]="'PROFILE.PLACEHOLDERS.STREET_NUMBER' | translate"
             (ionInput)="actualizarCalleNumero($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('calleNumero')) {
-          <p class="campo-error">Introduce una calle y número válidos.</p>
+          <p class="campo-error">{{ 'PROFILE.ERRORS.STREET_NUMBER' | translate }}</p>
         }
 
         <ion-item lines="inset">
-          <ion-label position="stacked">Ciudad</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.CITY' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.direccionPrincipal!.ciudad"
             name="ciudad"
             type="text"
             [attr.autocomplete]="obtenerAutocompleteDireccion('address-level2')"
-            placeholder="Madrid"
+            [placeholder]="'PROFILE.PLACEHOLDERS.CITY' | translate"
             (ionInput)="actualizarCiudad($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('ciudad')) {
-          <p class="campo-error">La ciudad debe tener al menos 2 letras y no puede incluir números.</p>
+          <p class="campo-error">{{ 'PROFILE.ERRORS.CITY' | translate }}</p>
         }
 
         <ion-item lines="inset">
-          <ion-label position="stacked">Código postal</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.POSTAL_CODE' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.direccionPrincipal!.codigoPostal"
             name="codigoPostal"
@@ -200,31 +204,31 @@
             inputmode="numeric"
             maxlength="5"
             [attr.autocomplete]="obtenerAutocompleteDireccion('postal-code')"
-            placeholder="28001"
+            [placeholder]="'PROFILE.PLACEHOLDERS.POSTAL_CODE' | translate"
             (ionInput)="actualizarCodigoPostal($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('codigoPostal')) {
-          <p class="campo-error">El código postal debe tener 5 dígitos.</p>
+          <p class="campo-error">{{ 'PROFILE.ERRORS.POSTAL_CODE' | translate }}</p>
         }
 
         <ion-item lines="inset">
-          <ion-label position="stacked">Provincia</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.PROVINCE' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.direccionPrincipal!.provincia"
             name="provincia"
             type="text"
             [attr.autocomplete]="obtenerAutocompleteDireccion('address-level1')"
-            placeholder="Madrid"
+            [placeholder]="'PROFILE.PLACEHOLDERS.PROVINCE' | translate"
             (ionInput)="actualizarProvincia($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('provincia')) {
-          <p class="campo-error">La provincia debe tener al menos 2 letras y no puede incluir números.</p>
+          <p class="campo-error">{{ 'PROFILE.ERRORS.PROVINCE' | translate }}</p>
         }
 
         <ion-item lines="inset">
-          <ion-label position="stacked">Teléfono</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.PHONE' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.direccionPrincipal!.telefono"
             name="telefono"
@@ -232,22 +236,22 @@
             inputmode="numeric"
             maxlength="9"
             [attr.autocomplete]="obtenerAutocompleteDireccion('tel')"
-            placeholder="600123123"
+            [placeholder]="'PROFILE.PLACEHOLDERS.PHONE' | translate"
             (ionInput)="actualizarTelefono($event)"
           ></ion-input>
         </ion-item>
         @if (mostrarErrorCampo('telefono')) {
-          <p class="campo-error">El teléfono debe tener 9 dígitos.</p>
+          <p class="campo-error">{{ 'PROFILE.ERRORS.PHONE' | translate }}</p>
         }
 
         <ion-item lines="none">
-          <ion-label position="stacked">Instrucciones</ion-label>
+          <ion-label position="stacked">{{ 'PROFILE.FIELDS.INSTRUCTIONS' | translate }}</ion-label>
           <ion-input
             [(ngModel)]="perfil.direccionPrincipal!.instrucciones"
             name="instrucciones"
             type="text"
             autocomplete="off"
-            placeholder="Opcional"
+            [placeholder]="'COMMON.PLACEHOLDERS.OPTIONAL' | translate"
           ></ion-input>
         </ion-item>
       </ion-card-content>
@@ -256,33 +260,33 @@
     <ion-card class="perfil-card">
       <ion-card-content>
         <div class="section-title">
-          <h2>Tarjeta principal</h2>
-          <ion-note color="medium">Se reutilizará automáticamente en la página de pago.</ion-note>
+          <h2>{{ 'COMMON.LABELS.PAYMENT_CARD' | translate }}</h2>
+          <ion-note color="medium">{{ 'PROFILE.CARD_NOTE' | translate }}</ion-note>
         </div>
 
         @if (tarjetaGuardadaEnmascaradaVisible()) {
           <ion-item lines="none">
-            <ion-label position="stacked">Número de tarjeta</ion-label>
+            <ion-label position="stacked">{{ 'PROFILE.FIELDS.CARD_NUMBER' | translate }}</ion-label>
             <ion-note class="tarjeta-enmascarada">{{ perfil.tarjetaPrincipal?.numeroTarjeta }}</ion-note>
           </ion-item>
         } @else {
           <ion-item lines="inset">
-            <ion-label position="stacked">Nombre del titular</ion-label>
+            <ion-label position="stacked">{{ 'PROFILE.FIELDS.CARDHOLDER' | translate }}</ion-label>
             <ion-input
               [(ngModel)]="perfil.tarjetaPrincipal!.nombreTitular"
               name="nombreTitular"
               type="text"
               [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-name')"
-              placeholder="Cómo aparece en la tarjeta"
+              [placeholder]="'PROFILE.PLACEHOLDERS.CARDHOLDER' | translate"
               (ionInput)="actualizarNombreTitular($event)"
             ></ion-input>
           </ion-item>
           @if (mostrarErrorCampo('nombreTitular')) {
-            <p class="campo-error">Introduce solo letras en el nombre del titular, tal y como aparece en la tarjeta.</p>
+            <p class="campo-error">{{ 'PROFILE.ERRORS.CARDHOLDER' | translate }}</p>
           }
 
           <ion-item lines="inset">
-            <ion-label position="stacked">Número de tarjeta</ion-label>
+            <ion-label position="stacked">{{ 'PROFILE.FIELDS.CARD_NUMBER' | translate }}</ion-label>
             <ion-input
               [(ngModel)]="perfil.tarjetaPrincipal!.numeroTarjeta"
               name="numeroTarjeta"
@@ -290,16 +294,16 @@
               inputmode="numeric"
               maxlength="19"
               [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-number')"
-              placeholder="1234 5678 9012 3456"
+              [placeholder]="'PROFILE.PLACEHOLDERS.CARD_NUMBER' | translate"
               (ionInput)="actualizarNumeroTarjeta($event)"
             ></ion-input>
           </ion-item>
           @if (mostrarErrorCampo('numeroTarjeta')) {
-            <p class="campo-error">Introduce una tarjeta válida de 16 dígitos.</p>
+            <p class="campo-error">{{ 'PROFILE.ERRORS.CARD_NUMBER' | translate }}</p>
           }
 
           <ion-item lines="inset">
-            <ion-label position="stacked">Fecha de caducidad</ion-label>
+            <ion-label position="stacked">{{ 'PROFILE.FIELDS.EXPIRY' | translate }}</ion-label>
             <ion-input
               [(ngModel)]="perfil.tarjetaPrincipal!.fechaCaducidad"
               name="fechaCaducidad"
@@ -307,16 +311,16 @@
               inputmode="numeric"
               maxlength="5"
               [attr.autocomplete]="obtenerAutocompleteTarjeta('cc-exp')"
-              placeholder="MM/AA"
+              [placeholder]="'PROFILE.PLACEHOLDERS.EXPIRY' | translate"
               (ionInput)="actualizarFechaCaducidad($event)"
             ></ion-input>
           </ion-item>
           @if (mostrarErrorCampo('fechaCaducidad')) {
-            <p class="campo-error">Usa el formato MM/AA y una fecha no caducada.</p>
+            <p class="campo-error">{{ 'PROFILE.ERRORS.EXPIRY' | translate }}</p>
           }
 
           <ion-item lines="none">
-            <ion-label position="stacked">CVV</ion-label>
+            <ion-label position="stacked">{{ 'PROFILE.FIELDS.CVV' | translate }}</ion-label>
             <ion-input
               [(ngModel)]="perfil.tarjetaPrincipal!.cvv"
               name="cvv"
@@ -324,12 +328,12 @@
               inputmode="numeric"
               maxlength="3"
               [attr.autocomplete]="obtenerAutocompleteCvv()"
-              placeholder="123"
+              [placeholder]="'PROFILE.PLACEHOLDERS.CVV' | translate"
               (ionInput)="actualizarCvv($event)"
             ></ion-input>
           </ion-item>
           @if (mostrarErrorCampo('cvv')) {
-            <p class="campo-error">El CVV debe tener exactamente 3 dígitos.</p>
+            <p class="campo-error">{{ 'PROFILE.ERRORS.CVV' | translate }}</p>
           }
         }
       </ion-card-content>
@@ -337,7 +341,7 @@
 
     <div class="acciones">
       <ion-button expand="block" size="large" class="guardar-button" (click)="guardarPerfil()">
-        Guardar perfil
+        {{ 'COMMON.ACTIONS.SAVE_PROFILE' | translate }}
       </ion-button>
 
       <ion-button
@@ -347,10 +351,8 @@
         class="reset-button"
         (click)="restablecerPreferencias()"
       >
-        Restablecer preferencias
+        {{ 'COMMON.ACTIONS.RESET_PREFERENCES' | translate }}
       </ion-button>
     </div>
   </div>
 </ion-content>
-
-

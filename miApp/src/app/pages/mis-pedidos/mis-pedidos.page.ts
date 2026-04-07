@@ -19,9 +19,12 @@ import {
   IonToolbar
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Pedido } from '../../models/order.model';
 import { OrderService } from '../../services/order.service';
 import { UserSessionService } from '../../services/user-session.service';
+import { LanguageService } from '../../services/language.service';
+import { PlatoService } from '../../services/plato.service';
 
 @Component({
   selector: 'app-mis-pedidos',
@@ -45,7 +48,8 @@ import { UserSessionService } from '../../services/user-session.service';
     IonItem,
     IonLabel,
     IonNote,
-    IonThumbnail
+    IonThumbnail,
+    TranslateModule
   ]
 })
 export class MisPedidosPage implements OnInit {
@@ -54,7 +58,10 @@ export class MisPedidosPage implements OnInit {
   constructor(
     private orderService: OrderService,
     private userSessionService: UserSessionService,
-    private router: Router
+    private router: Router,
+    private translateService: TranslateService,
+    private languageService: LanguageService,
+    private platoService: PlatoService
   ) {}
 
   ngOnInit(): void {
@@ -77,7 +84,7 @@ export class MisPedidosPage implements OnInit {
   }
 
   formatearFecha(fechaIso: string): string {
-    return new Intl.DateTimeFormat('es-ES', {
+    return new Intl.DateTimeFormat(this.languageService.getCurrentLocale(), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -88,7 +95,7 @@ export class MisPedidosPage implements OnInit {
   }
 
   formatearFechaEntrega(fechaIso: string, franjaEntrega: string): string {
-    const fechaLocal = new Intl.DateTimeFormat('es-ES', {
+    const fechaLocal = new Intl.DateTimeFormat(this.languageService.getCurrentLocale(), {
       weekday: 'long',
       day: '2-digit',
       month: '2-digit',
@@ -101,26 +108,34 @@ export class MisPedidosPage implements OnInit {
 
   obtenerEtiquetaMetodoPago(metodoPago: string): string {
     if (metodoPago === 'tarjeta') {
-      return 'Tarjeta';
+      return this.translateService.instant('COMMON.PAYMENT_METHODS.tarjeta');
     }
 
     if (metodoPago === 'bizum') {
-      return 'Bizum';
+      return this.translateService.instant('COMMON.PAYMENT_METHODS.bizum');
     }
 
-    return 'Efectivo';
+    return this.translateService.instant('COMMON.PAYMENT_METHODS.efectivo');
   }
 
   obtenerEtiquetaTipoPedido(esSuscripcion: boolean): string {
-    return esSuscripcion ? 'Suscripción semanal' : 'Pedido normal';
+    return esSuscripcion
+      ? this.translateService.instant('COMMON.ORDER_TYPE.SUBSCRIPTION')
+      : this.translateService.instant('COMMON.ORDER_TYPE.NORMAL');
   }
 
   obtenerEtiquetaEstado(estado: Pedido['estado']): string {
-    return estado === 'entregado' ? 'Entregado' : 'Confirmado';
+    return estado === 'entregado'
+      ? this.translateService.instant('COMMON.ORDER_STATUS.entregado')
+      : this.translateService.instant('COMMON.ORDER_STATUS.confirmado');
   }
 
   obtenerColorEstado(estado: Pedido['estado']): string {
     return estado === 'entregado' ? 'medium' : 'success';
+  }
+
+  obtenerNombrePlato(platoId: number, fallback: string): string {
+    return this.platoService.obtenerNombreTraducido(platoId, fallback);
   }
 
   private cargarPedidos(): void {

@@ -1,11 +1,13 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { convertToParamMap, ActivatedRoute, Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { LoginPage } from './login.page';
 import { OrderService } from '../../services/order.service';
 import { ProfileService } from '../../services/profile.service';
 import { SubscriptionService } from '../../services/subscription.service';
 import { UserSessionService } from '../../services/user-session.service';
+import { FirstOrderService } from '../../services/first-order.service';
 
 describe('LoginPage', () => {
   let component: LoginPage;
@@ -13,7 +15,7 @@ describe('LoginPage', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [LoginPage],
+      imports: [LoginPage, TranslateModule.forRoot()],
       providers: [
         {
           provide: ActivatedRoute,
@@ -59,6 +61,15 @@ describe('LoginPage', () => {
             obtenerUsuarios: jasmine.createSpy('obtenerUsuarios').and.resolveTo([]),
             iniciarSesion: jasmine.createSpy('iniciarSesion').and.resolveTo({ id: 1, nombre: 'Test', email: 'test@test.com' }),
             registrarUsuario: jasmine.createSpy('registrarUsuario').and.resolveTo({ id: 2, nombre: 'Alta', email: 'alta@test.com' })
+          }
+        },
+        {
+          provide: FirstOrderService,
+          useValue: {
+            estaActivo: jasmine.createSpy('estaActivo').and.returnValue(false),
+            esModoSuscripcion: jasmine.createSpy('esModoSuscripcion').and.returnValue(false),
+            marcarUsuarioRecienCreado: jasmine.createSpy('marcarUsuarioRecienCreado'),
+            finalizarProceso: jasmine.createSpy('finalizarProceso')
           }
         }
       ]

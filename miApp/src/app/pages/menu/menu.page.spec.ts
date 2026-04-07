@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { convertToParamMap, ActivatedRoute, Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { MenuPage } from './menu.page';
 import { PlatoService } from '../../services/plato.service';
@@ -8,6 +9,7 @@ import { OrderService } from '../../services/order.service';
 import { ProfileService } from '../../services/profile.service';
 import { SubscriptionService } from '../../services/subscription.service';
 import { UserSessionService } from '../../services/user-session.service';
+import { FirstOrderService } from '../../services/first-order.service';
 
 describe('MenuPage', () => {
   let component: MenuPage;
@@ -15,7 +17,7 @@ describe('MenuPage', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MenuPage],
+      imports: [MenuPage, TranslateModule.forRoot()],
       providers: [
         {
           provide: ActivatedRoute,
@@ -98,6 +100,23 @@ describe('MenuPage', () => {
           provide: UserSessionService,
           useValue: {
             haySesionActiva: jasmine.createSpy('haySesionActiva').and.returnValue(false)
+          }
+        },
+        {
+          provide: FirstOrderService,
+          useValue: {
+            obtenerFiltrosNutricionales: jasmine.createSpy('obtenerFiltrosNutricionales').and.returnValue({
+              alergenos: [],
+              objetivoNutricional: null,
+              preferenciasComposicion: []
+            }),
+            estaActivo: jasmine.createSpy('estaActivo').and.returnValue(false),
+            esModoSuscripcion: jasmine.createSpy('esModoSuscripcion').and.returnValue(false),
+            esModoIndividual: jasmine.createSpy('esModoIndividual').and.returnValue(false),
+            obtenerSuscripcionTemporal: jasmine.createSpy('obtenerSuscripcionTemporal').and.returnValue(null),
+            guardarSuscripcionTemporal: jasmine.createSpy('guardarSuscripcionTemporal'),
+            guardarFiltrosNutricionales: jasmine.createSpy('guardarFiltrosNutricionales'),
+            finalizarProceso: jasmine.createSpy('finalizarProceso')
           }
         }
       ]

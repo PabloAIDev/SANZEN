@@ -90,6 +90,15 @@
   font-size: 1.1rem;
 }
 
+.inicio-menu-lateral .menu-language-item {
+  display: flex;
+  align-items: center;
+}
+
+.inicio-menu-lateral .menu-language-item ion-label {
+  font-weight: 600;
+}
+
 .inicio-menu-lateral ion-item:hover {
   --background: rgba(255, 247, 238, 0.92);
   transform: translateX(2px);

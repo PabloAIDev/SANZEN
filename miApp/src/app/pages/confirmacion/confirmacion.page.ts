@@ -15,11 +15,15 @@ import {
   IonNote,
   IonThumbnail,
   IonTitle,
-  IonToolbar
+  IonToolbar,
+  IonButtons
 } from '@ionic/angular/standalone';
 import { RouterLink } from '@angular/router';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { Pedido } from '../../models/order.model';
 import { OrderService } from '../../services/order.service';
+import { LanguageService } from '../../services/language.service';
+import { PlatoService } from '../../services/plato.service';
 
 @Component({
   selector: 'app-confirmacion',
@@ -32,6 +36,7 @@ import { OrderService } from '../../services/order.service';
     IonHeader,
     IonToolbar,
     IonTitle,
+    IonButtons,
     IonContent,
     IonCard,
     IonCardHeader,
@@ -43,13 +48,19 @@ import { OrderService } from '../../services/order.service';
     IonList,
     IonItem,
     IonLabel,
-    IonThumbnail
+    IonThumbnail,
+    TranslateModule
   ]
 })
 export class ConfirmacionPage {
   ultimoPedido: Pedido | null = null;
 
-  constructor(private orderService: OrderService) {}
+  constructor(
+    private orderService: OrderService,
+    private translateService: TranslateService,
+    private languageService: LanguageService,
+    private platoService: PlatoService
+  ) {}
 
   async ionViewWillEnter(): Promise<void> {
     await this.orderService.refrescarDesdeApi();
@@ -57,7 +68,7 @@ export class ConfirmacionPage {
   }
 
   formatearFecha(fechaIso: string): string {
-    return new Intl.DateTimeFormat('es-ES', {
+    return new Intl.DateTimeFormat(this.languageService.getCurrentLocale(), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -68,7 +79,7 @@ export class ConfirmacionPage {
   }
 
   formatearFechaEntrega(fechaIso: string, franjaEntrega: string): string {
-    const fechaLocal = new Intl.DateTimeFormat('es-ES', {
+    const fechaLocal = new Intl.DateTimeFormat(this.languageService.getCurrentLocale(), {
       weekday: 'long',
       day: '2-digit',
       month: '2-digit',
@@ -81,25 +92,33 @@ export class ConfirmacionPage {
 
   obtenerEtiquetaMetodoPago(metodoPago: string): string {
     if (metodoPago === 'tarjeta') {
-      return 'Tarjeta';
+      return this.translateService.instant('COMMON.PAYMENT_METHODS.tarjeta');
     }
 
     if (metodoPago === 'bizum') {
-      return 'Bizum';
+      return this.translateService.instant('COMMON.PAYMENT_METHODS.bizum');
     }
 
-    return 'Efectivo';
+    return this.translateService.instant('COMMON.PAYMENT_METHODS.efectivo');
   }
 
   obtenerEtiquetaTipoPedido(esSuscripcion: boolean): string {
-    return esSuscripcion ? 'Suscripción semanal' : 'Pedido normal';
+    return esSuscripcion
+      ? this.translateService.instant('COMMON.ORDER_TYPE.SUBSCRIPTION')
+      : this.translateService.instant('COMMON.ORDER_TYPE.NORMAL');
   }
 
   obtenerEtiquetaEstado(estado: Pedido['estado']): string {
-    return estado === 'entregado' ? 'Entregado' : 'Confirmado';
+    return estado === 'entregado'
+      ? this.translateService.instant('COMMON.ORDER_STATUS.entregado')
+      : this.translateService.instant('COMMON.ORDER_STATUS.confirmado');
   }
 
   obtenerColorEstado(estado: Pedido['estado']): string {
     return estado === 'entregado' ? 'medium' : 'success';
+  }
+
+  obtenerNombrePlato(platoId: number, fallback: string): string {
+    return this.platoService.obtenerNombreTraducido(platoId, fallback);
   }
 }

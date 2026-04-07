@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
+import { TranslateModule } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { SuscripcionPage } from './suscripcion.page';
 import { SubscriptionService } from '../../services/subscription.service';
@@ -30,7 +31,7 @@ describe('SuscripcionPage', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [SuscripcionPage],
+      imports: [SuscripcionPage, TranslateModule.forRoot()],
       providers: [
         {
           provide: SubscriptionService,
@@ -39,6 +40,8 @@ describe('SuscripcionPage', () => {
             obtenerMinimoPlatosSuscripcion: jasmine.createSpy('obtenerMinimoPlatosSuscripcion').and.returnValue(5),
             obtenerDescuentoPorPlan: jasmine.createSpy('obtenerDescuentoPorPlan').and.returnValue(0.2),
             suscripcionCompleta: jasmine.createSpy('suscripcionCompleta').and.returnValue(true),
+            previsualizarSuscripcion: jasmine.createSpy('previsualizarSuscripcion').and.callFake((suscripcion: UserSubscription) => suscripcion),
+            establecerSuscripcionTemporal: jasmine.createSpy('establecerSuscripcionTemporal'),
             guardarPlan: jasmine.createSpy('guardarPlan').and.callFake((_plan: number, activa: boolean) => ({
               ...suscripcionBase,
               activa
@@ -141,6 +144,46 @@ describe('SuscripcionPage', () => {
     expect(carritoService.reiniciarCarrito).toHaveBeenCalled();
     expect(router.navigate).toHaveBeenCalledWith(['/menu'], {
       queryParams: { subscriptionSelection: '0' }
+    });
+  });
+
+  it('debe llevar al menu en modo suscripcion si la seleccion activa tiene menos de 5 platos', async () => {
+    component.suscripcion = {
+      ...suscripcionBase,
+      activa: true,
+      platosSeleccionadosIds: [1, 2, 3, 4]
+    };
+
+    const subscriptionService = TestBed.inject(SubscriptionService) as jasmine.SpyObj<SubscriptionService>;
+    const router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+    const toastController = TestBed.inject(ToastController) as jasmine.SpyObj<ToastController>;
+
+    await component.guardarSuscripcion();
+
+    expect(subscriptionService.guardarPlan).not.toHaveBeenCalled();
+    expect(subscriptionService.establecerSuscripcionTemporal).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/menu'], {
+      queryParams: { subscriptionSelection: '1' }
+    });
+    expect(toastController.create).toHaveBeenCalled();
+  });
+
+  it('debe permitir empezar la seleccion desde suscripcion aunque todavia no haya platos guardados', async () => {
+    component.suscripcion = {
+      ...suscripcionBase,
+      activa: false,
+      platosSeleccionadosIds: []
+    };
+
+    const subscriptionService = TestBed.inject(SubscriptionService) as jasmine.SpyObj<SubscriptionService>;
+    const router = TestBed.inject(Router) as jasmine.SpyObj<Router>;
+
+    await component.irAModificarSeleccion();
+
+    expect(subscriptionService.previsualizarSuscripcion).toHaveBeenCalled();
+    expect(subscriptionService.establecerSuscripcionTemporal).toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/menu'], {
+      queryParams: { subscriptionSelection: '1' }
     });
   });
 });

@@ -3,8 +3,8 @@ const { generateAssistantResponse } = require('../services/assistant.service');
 
 async function chatWithAssistant(req, res) {
   try {
-    const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
-    const screen = typeof req.body?.screen === 'string' ? req.body.screen.trim() : 'inicio';
+    const message = typeof req.body?.message === 'string' ? req.body.message.trim().slice(0, 600) : '';
+    const screen = typeof req.body?.screen === 'string' ? req.body.screen.trim().slice(0, 40) : 'inicio';
     const history = normalizeHistory(req.body?.history);
     const clientContext = req.body?.context && typeof req.body.context === 'object'
       ? req.body.context

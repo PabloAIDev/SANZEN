@@ -14,6 +14,12 @@ const DIAS_ENTREGA_VALIDOS = new Set([
 ]);
 const TARJETA_ENMASCARADA_REGEX = /^\*{4}\s\*{4}\s\*{4}\s\d{4}$/;
 
+function crearErrorHttp(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
 function numeroTarjetaValido(valor) {
   const digitos = String(valor ?? '').replace(/\D/g, '');
   return /^\d{16}$/.test(digitos);
@@ -86,64 +92,20 @@ async function getSuscripcion(req, res) {
       return;
     }
     const userId = userIdResult.userId;
-    const [[suscripcion]] = await pool.query(
-      `
-      SELECT
-        id,
-        activa,
-        plan_semanal,
-        dia_entrega,
-        descuento_porcentaje,
-        precio_original,
-        descuento_aplicado,
-        precio_final,
-        proxima_entrega
-      FROM suscripciones
-      WHERE usuario_id = ?
-      ORDER BY updated_at DESC, id DESC
-      LIMIT 1
-      `,
-      [userId]
-    );
+    const suscripcionPersistida = await construirRespuestaSuscripcionPersistida(pool, { userId });
 
-    if (!suscripcion) {
+    if (!suscripcionPersistida) {
       res.json(obtenerSuscripcionVacia());
       return;
     }
 
-    let platosRows = await obtenerPlatosSuscripcion(pool, suscripcion.id);
-
-    if (platosRows.length === 0 && Boolean(suscripcion.activa)) {
-      platosRows = await recuperarPlatosDesdeUltimoPedido(pool, userId, suscripcion.id);
-    }
-
-    const platosSeleccionadosIds = [];
-
-    for (const plato of platosRows) {
-      for (let i = 0; i < plato.cantidad; i += 1) {
-        platosSeleccionadosIds.push(plato.plato_id);
-      }
-    }
-
-    res.json({
-      activa: Boolean(suscripcion.activa),
-      planSemanal: 5,
-      diaEntrega: suscripcion.dia_entrega,
-      platosPorSemana: 5,
-      platosSeleccionadosIds,
-      precioOriginal: Number(suscripcion.precio_original ?? 0),
-      descuentoAplicado: Number(suscripcion.descuento_aplicado ?? 0),
-      precioEstimado: Number(suscripcion.precio_final ?? 0),
-      proximaEntrega: construirTextoEntrega(suscripcion.dia_entrega, suscripcion.proxima_entrega),
-      proximaEntregaIso: suscripcion.proxima_entrega
-        ? new Date(suscripcion.proxima_entrega).toISOString()
-        : null
-    });
+    res.json(suscripcionPersistida);
   } catch (error) {
     console.error('Error al obtener suscripcion:', error);
     res.status(500).json({ message: 'No se ha podido obtener la suscripcion.' });
   }
 }
+
 
 async function upsertSuscripcion(req, res) {
   const connection = await pool.getConnection();
@@ -156,26 +118,34 @@ async function upsertSuscripcion(req, res) {
       res.status(userIdResult.status ?? 400).json({ message: userIdResult.error });
       return;
     }
-    const userId = userIdResult.userId;
-    const diaEntrega = String(suscripcion.diaEntrega ?? '').trim().toLowerCase();
-    const platosSeleccionadosIds = normalizarIdsPlatos(suscripcion.platosSeleccionadosIds);
 
-    if (Array.isArray(suscripcion.platosSeleccionadosIds) && platosSeleccionadosIds.length !== suscripcion.platosSeleccionadosIds.length) {
-      res.status(400).json({ message: 'La selección de platos de la suscripción no es válida.' });
+    const userId = userIdResult.userId;
+    const diaEntrega = String(suscripcion?.diaEntrega ?? '').trim().toLowerCase();
+    const platosSeleccionadosIds = normalizarIdsPlatos(suscripcion?.platosSeleccionadosIds);
+
+    if (Array.isArray(suscripcion?.platosSeleccionadosIds) && platosSeleccionadosIds.length !== suscripcion.platosSeleccionadosIds.length) {
+      res.status(400).json({ message: 'La seleccion de platos de la suscripcion no es valida.' });
       return;
     }
 
     if (!DIAS_ENTREGA_VALIDOS.has(diaEntrega)) {
-      res.status(400).json({ message: 'El día de entrega de la suscripción no es válido.' });
+      res.status(400).json({ message: 'El dia de entrega de la suscripcion no es valido.' });
       return;
     }
 
-    if (Boolean(suscripcion.activa) && platosSeleccionadosIds.length < 5) {
-      res.status(400).json({ message: 'La suscripción activa debe incluir al menos 5 platos.' });
+    if (Boolean(suscripcion?.activa) && platosSeleccionadosIds.length < 5) {
+      res.status(400).json({ message: 'La suscripcion activa debe incluir al menos 5 platos.' });
       return;
     }
 
     await connection.beginTransaction();
+
+    const planSemanal = 5;
+    const resumenImportes = await calcularImportesSuscripcion(connection, {
+      platosSeleccionadosIds,
+      planSemanal,
+      invalidStatus: 400
+    });
 
     const [suscripcionRows] = await connection.query(
       `
@@ -190,7 +160,6 @@ async function upsertSuscripcion(req, res) {
 
     let suscripcionId = suscripcionRows.length > 0 ? suscripcionRows[0].id : null;
     const proximaEntregaMysql = calcularProximaEntregaMysql(diaEntrega);
-    const descuentoPorcentaje = obtenerDescuentoPorcentajeSuscripcion(5);
 
     if (suscripcionId) {
       await connection.query(
@@ -200,13 +169,13 @@ async function upsertSuscripcion(req, res) {
         WHERE id = ?
         `,
         [
-          Boolean(suscripcion.activa),
-          5,
+          Boolean(suscripcion?.activa),
+          planSemanal,
           diaEntrega,
-          descuentoPorcentaje,
-          suscripcion.precioOriginal ?? 0,
-          suscripcion.descuentoAplicado ?? 0,
-          suscripcion.precioEstimado ?? 0,
+          resumenImportes.descuentoPorcentaje,
+          resumenImportes.precioOriginal,
+          resumenImportes.descuentoAplicado,
+          resumenImportes.precioEstimado,
           proximaEntregaMysql,
           suscripcionId
         ]
@@ -228,13 +197,13 @@ async function upsertSuscripcion(req, res) {
         `,
         [
           userId,
-          Boolean(suscripcion.activa),
-          5,
+          Boolean(suscripcion?.activa),
+          planSemanal,
           diaEntrega,
-          descuentoPorcentaje,
-          suscripcion.precioOriginal ?? 0,
-          suscripcion.descuentoAplicado ?? 0,
-          suscripcion.precioEstimado ?? 0,
+          resumenImportes.descuentoPorcentaje,
+          resumenImportes.precioOriginal,
+          resumenImportes.descuentoAplicado,
+          resumenImportes.precioEstimado,
           proximaEntregaMysql
         ]
       );
@@ -262,8 +231,13 @@ async function upsertSuscripcion(req, res) {
       }
     }
 
+    const respuestaPersistida = await construirRespuestaSuscripcionPersistida(connection, {
+      userId,
+      suscripcionId
+    });
+
     await connection.commit();
-    res.json(suscripcion);
+    res.json(respuestaPersistida ?? obtenerSuscripcionVacia());
   } catch (error) {
     await connection.rollback();
     if (!error.status) {
@@ -308,7 +282,7 @@ async function simularRenovacionSemanal(req, res) {
     );
 
     if (suscripcionRows.length === 0) {
-      res.status(400).json({ message: 'No hay una suscripción activa para renovar.' });
+      res.status(400).json({ message: 'No hay una suscripcion activa para renovar.' });
       return;
     }
 
@@ -324,13 +298,13 @@ async function simularRenovacionSemanal(req, res) {
     const totalUnidades = platosRows.reduce((total, plato) => total + Number(plato.cantidad), 0);
 
     if (totalUnidades < 5) {
-      res.status(400).json({ message: 'La suscripción debe tener al menos 5 platos para generar la renovación.' });
+      res.status(400).json({ message: 'La suscripcion debe tener al menos 5 platos para generar la renovacion.' });
       return;
     }
 
     const [[direccion]] = await connection.query(
       `
-      SELECT id, nombre, calle_numero, ciudad, codigo_postal, provincia, instrucciones
+      SELECT id, nombre, calle_numero, ciudad, codigo_postal, provincia, telefono, instrucciones
       FROM direcciones
       WHERE usuario_id = ?
       ORDER BY es_principal DESC, id ASC
@@ -351,7 +325,7 @@ async function simularRenovacionSemanal(req, res) {
     );
 
     if (!direccionValida(direccion) || !tarjetaValida(tarjeta)) {
-      res.status(400).json({ message: 'Necesitas una dirección y una tarjeta guardadas para simular la renovación semanal.' });
+      res.status(400).json({ message: 'Necesitas una direccion y una tarjeta guardadas para simular la renovacion semanal.' });
       return;
     }
 
@@ -486,8 +460,8 @@ async function simularRenovacionSemanal(req, res) {
     });
   } catch (error) {
     await connection.rollback();
-    console.error('Error al simular la renovación semanal:', error);
-    res.status(500).json({ message: 'No se ha podido simular la renovación semanal.' });
+    console.error('Error al simular la renovacion semanal:', error);
+    res.status(500).json({ message: 'No se ha podido simular la renovacion semanal.' });
   } finally {
     connection.release();
   }
@@ -540,6 +514,133 @@ async function obtenerPlatosSuscripcionDetalle(executor, suscripcionId) {
   );
 
   return platosRows;
+}
+
+async function construirRespuestaSuscripcionPersistida(executor, { userId, suscripcionId = null }) {
+  const filtros = ['usuario_id = ?'];
+  const parametros = [userId];
+
+  if (Number.isInteger(Number(suscripcionId)) && Number(suscripcionId) > 0) {
+    filtros.push('id = ?');
+    parametros.push(Number(suscripcionId));
+  }
+
+  const [[suscripcion]] = await executor.query(
+    `
+    SELECT
+      id,
+      activa,
+      plan_semanal,
+      dia_entrega,
+      proxima_entrega
+    FROM suscripciones
+    WHERE ${filtros.join(' AND ')}
+    ORDER BY updated_at DESC, id DESC
+    LIMIT 1
+    `,
+    parametros
+  );
+
+  if (!suscripcion) {
+    return null;
+  }
+
+  let platosRows = await obtenerPlatosSuscripcion(executor, suscripcion.id);
+
+  if (platosRows.length === 0 && Boolean(suscripcion.activa)) {
+    platosRows = await recuperarPlatosDesdeUltimoPedido(executor, userId, suscripcion.id);
+  }
+
+  const platosSeleccionadosIds = expandirPlatosSeleccionados(platosRows);
+  const resumenImportes = await calcularImportesSuscripcion(executor, {
+    platosSeleccionadosIds,
+    planSemanal: suscripcion.plan_semanal,
+    invalidStatus: 500
+  });
+
+  return {
+    activa: Boolean(suscripcion.activa),
+    planSemanal: Number(suscripcion.plan_semanal ?? 5),
+    diaEntrega: suscripcion.dia_entrega,
+    platosPorSemana: Number(suscripcion.plan_semanal ?? 5),
+    platosSeleccionadosIds,
+    precioOriginal: resumenImportes.precioOriginal,
+    descuentoAplicado: resumenImportes.descuentoAplicado,
+    precioEstimado: resumenImportes.precioEstimado,
+    proximaEntrega: construirTextoEntrega(suscripcion.dia_entrega, suscripcion.proxima_entrega),
+    proximaEntregaIso: suscripcion.proxima_entrega
+      ? new Date(suscripcion.proxima_entrega).toISOString()
+      : null
+  };
+}
+
+function expandirPlatosSeleccionados(platosRows) {
+  const platosSeleccionadosIds = [];
+
+  for (const plato of platosRows) {
+    for (let i = 0; i < Number(plato.cantidad ?? 0); i += 1) {
+      platosSeleccionadosIds.push(Number(plato.plato_id));
+    }
+  }
+
+  return platosSeleccionadosIds;
+}
+
+async function calcularImportesSuscripcion(executor, { platosSeleccionadosIds, planSemanal, invalidStatus }) {
+  const descuentoPorcentaje = obtenerDescuentoPorcentajeSuscripcion(planSemanal);
+
+  if (!Array.isArray(platosSeleccionadosIds) || platosSeleccionadosIds.length === 0) {
+    return {
+      precioOriginal: 0,
+      descuentoAplicado: 0,
+      precioEstimado: 0,
+      descuentoPorcentaje
+    };
+  }
+
+  const platosIds = [...new Set(
+    platosSeleccionadosIds
+      .map((id) => Number(id))
+      .filter((id) => Number.isInteger(id) && id > 0)
+  )];
+
+  const [platosRows] = await executor.query(
+    `
+    SELECT id, precio
+    FROM platos
+    WHERE id IN (?)
+    `,
+    [platosIds]
+  );
+
+  if (platosRows.length !== platosIds.length) {
+    throw crearErrorHttp(invalidStatus, 'La seleccion de platos de la suscripcion no es valida.');
+  }
+
+  const precioPorPlato = new Map(
+    platosRows.map((plato) => [Number(plato.id), Number(plato.precio)])
+  );
+
+  const precioOriginal = Number(
+    platosSeleccionadosIds.reduce((total, platoId) => {
+      const precio = precioPorPlato.get(Number(platoId));
+
+      if (typeof precio !== 'number') {
+        throw crearErrorHttp(invalidStatus, 'La seleccion de platos de la suscripcion no es valida.');
+      }
+
+      return total + precio;
+    }, 0).toFixed(2)
+  );
+  const descuentoAplicado = Number((precioOriginal * (descuentoPorcentaje / 100)).toFixed(2));
+  const precioEstimado = Number((precioOriginal - descuentoAplicado).toFixed(2));
+
+  return {
+    precioOriginal,
+    descuentoAplicado,
+    precioEstimado,
+    descuentoPorcentaje
+  };
 }
 
 async function recuperarPlatosDesdeUltimoPedido(executor, userId, suscripcionId) {

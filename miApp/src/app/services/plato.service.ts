@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import {Macronutrients, Plato} from '../models/plato.model';
+import { ENGLISH_PLATO_TRANSLATIONS } from '../data/plato-translations.data';
+import { AppLanguage, LanguageService } from './language.service';
 
 interface PlatoApiResponse {
   id: number;
@@ -18,6 +20,14 @@ interface PlatoApiResponse {
   fat_g: number;
   fiber_g: number;
   allergens: string[];
+}
+
+interface PlatoSpanishSnapshot {
+  name: string;
+  description: string;
+  units: string;
+  ingredients: string[];
+  sideDishes: string[];
 }
 
 @Injectable({
@@ -742,7 +752,27 @@ export class PlatoService {
     }
   ];
 
-  constructor(private http: HttpClient) {}
+  private readonly platosBaseEs = new Map<number, PlatoSpanishSnapshot>(
+    this.platos.map(plato => [
+      plato.id,
+      {
+        name: plato.name,
+        description: plato.description,
+        units: plato.units,
+        ingredients: [...plato.ingredients],
+        sideDishes: [...plato.side_dishes]
+      }
+    ])
+  );
+
+  constructor(
+    private http: HttpClient,
+    private languageService: LanguageService
+  ) {
+    this.languageService.currentLanguage$.subscribe(language => {
+      this.aplicarIdiomaCatalogo(language);
+    });
+  }
 
   async cargarInicial(): Promise<void> {
     try {
@@ -756,6 +786,8 @@ export class PlatoService {
     } catch (error) {
       console.warn('No se han podido cargar los platos desde la API. Se usan los datos locales.', error);
     }
+
+    this.aplicarIdiomaCatalogo(this.languageService.getCurrentLanguage());
   }
 
   obtenerPlatos(): Plato[] {
@@ -774,6 +806,20 @@ export class PlatoService {
 
   obtenerPlatoPorId(id: number): Plato | undefined {
     return this.platos.find(plato => plato.id === id);
+  }
+
+  obtenerNombreTraducido(platoId: number, fallback = ''): string {
+    const plato = this.obtenerPlatoPorId(platoId);
+
+    if (plato) {
+      return plato.name;
+    }
+
+    if (this.languageService.getCurrentLanguage() === 'en') {
+      return ENGLISH_PLATO_TRANSLATIONS[platoId]?.name ?? fallback;
+    }
+
+    return this.platosBaseEs.get(platoId)?.name ?? fallback;
   }
 
   recalcularHealthScoreDePlato(id: number): number | null {
@@ -811,15 +857,13 @@ export class PlatoService {
 
       return {
         ...platoLocal,
-        name: platoApi.nombre,
-        description: platoApi.descripcion,
-        allergens: platoApi.allergens ?? platoLocal.allergens,
+        allergens: this.normalizarAlergenos(platoApi.allergens ?? platoLocal.allergens),
         category: platoApi.categoria,
         calories: platoApi.calorias,
         price: platoApi.precio,
         healthScore: platoApi.healthScore,
         available: Boolean(platoApi.disponible),
-        image: platoApi.imagen,
+        image: this.resolverRutaImagen(platoApi.imagen, platoLocal.image),
         nutrition: {
           macronutrients: {
             protein_g: platoApi.protein_g,
@@ -830,5 +874,91 @@ export class PlatoService {
         }
       };
     });
+  }
+
+  private aplicarIdiomaCatalogo(language: AppLanguage): void {
+    this.platos.forEach(plato => {
+      const baseEs = this.platosBaseEs.get(plato.id);
+
+      if (!baseEs) {
+        return;
+      }
+
+      if (language === 'en') {
+        const translation = ENGLISH_PLATO_TRANSLATIONS[plato.id];
+
+        if (!translation) {
+          return;
+        }
+
+        plato.name = translation.name;
+        plato.description = translation.description;
+        plato.units = translation.units;
+        plato.ingredients = [...translation.ingredients];
+        plato.side_dishes = [...(translation.sideDishes ?? baseEs.sideDishes)];
+        return;
+      }
+
+      plato.name = baseEs.name;
+      plato.description = baseEs.description;
+      plato.units = baseEs.units;
+      plato.ingredients = [...baseEs.ingredients];
+      plato.side_dishes = [...baseEs.sideDishes];
+    });
+  }
+
+  private normalizarAlergenos(alergenos: string[]): string[] {
+    return alergenos.map(alergeno => {
+      if (alergeno === 'CrustÃ¡ceos') {
+        return 'Crustáceos';
+      }
+
+      if (alergeno === 'LÃ¡cteos') {
+        return 'Lácteos';
+      }
+
+      if (alergeno === 'SÃ©samo') {
+        return 'Sésamo';
+      }
+
+      return alergeno;
+    });
+  }
+
+  private resolverRutaImagen(
+    imagenApi: string | undefined,
+    imagenLocal: string
+  ): string {
+    if (typeof imagenApi !== 'string' || imagenApi.trim() === '') {
+      return imagenLocal;
+    }
+
+    const imagenNormalizada = imagenApi.trim().replace(/\\/g, '/');
+
+    if (
+      imagenNormalizada.startsWith('http://') ||
+      imagenNormalizada.startsWith('https://') ||
+      imagenNormalizada.startsWith('data:')
+    ) {
+      return imagenNormalizada;
+    }
+
+    if (imagenNormalizada.startsWith('/assets/')) {
+      return imagenNormalizada.slice(1);
+    }
+
+    if (imagenNormalizada.startsWith('assets/')) {
+      return imagenNormalizada;
+    }
+
+    if (imagenNormalizada.startsWith('src/assets/')) {
+      return imagenNormalizada.replace(/^src\//, '');
+    }
+
+    if (!imagenNormalizada.includes('/')) {
+      return `assets/img/${imagenNormalizada}`;
+    }
+
+    return imagenLocal;
   }
 }

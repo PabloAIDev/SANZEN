@@ -1,7 +1,12 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { AssistantHistoryEntry, AssistantResponse } from '../models/assistant.model';
+import {
+  AssistantAction,
+  AssistantHistoryEntry,
+  AssistantResponse,
+  AssistantResponseSource
+} from '../models/assistant.model';
 import { ProfileService } from './profile.service';
 import { SubscriptionService } from './subscription.service';
 import { CarritoService } from './carrito.service';
@@ -14,6 +19,17 @@ import { UserSessionService } from './user-session.service';
 })
 export class AssistantService {
   private readonly apiUrl = 'http://localhost:3000/api/assistant/chat';
+  private readonly allowedTargets = new Set([
+    '/inicio',
+    '/menu',
+    '/resumen',
+    '/pago',
+    '/perfil',
+    '/suscripcion',
+    '/mis-pedidos',
+    '/como-funciona',
+    '/login'
+  ]);
 
   constructor(
     private http: HttpClient,
@@ -30,7 +46,7 @@ export class AssistantService {
     screen: string,
     history: AssistantHistoryEntry[]
   ): Promise<AssistantResponse> {
-    return firstValueFrom(
+    const response = await firstValueFrom(
       this.http.post<AssistantResponse>(this.apiUrl, {
         message,
         screen,
@@ -38,6 +54,8 @@ export class AssistantService {
         context: this.buildClientContext()
       })
     );
+
+    return this.normalizarRespuesta(response);
   }
 
   private buildClientContext(): object {
@@ -124,5 +142,92 @@ export class AssistantService {
     }
 
     return Array.from(items.values());
+  }
+
+  private normalizarRespuesta(response: Partial<AssistantResponse> | null | undefined): AssistantResponse {
+    const message = typeof response?.message === 'string' && response.message.trim() !== ''
+      ? response.message.trim()
+      : 'No he podido responder ahora mismo. Intentalo de nuevo en unos segundos.';
+
+    const actions = Array.isArray(response?.actions)
+      ? response.actions
+          .filter((action): action is AssistantAction => Boolean(action && action.type === 'navigate'))
+          .map((action) => {
+            const target = this.sanitizarTarget(action.target);
+
+            if (!target) {
+              return null;
+            }
+
+            return {
+              type: 'navigate' as const,
+              target,
+              label: this.sanitizarEtiqueta(action.label, target)
+            };
+          })
+          .filter((action): action is AssistantAction => action !== null)
+          .slice(0, 2)
+      : [];
+
+    return {
+      message,
+      actions,
+      source: this.normalizarSource(response?.source)
+    };
+  }
+
+  private sanitizarTarget(target: unknown): string | null {
+    if (typeof target !== 'string') {
+      return null;
+    }
+
+    const normalized = target.trim();
+
+    if (this.allowedTargets.has(normalized)) {
+      return normalized;
+    }
+
+    if (normalized.startsWith('/menu?subscriptionSelection=1')) {
+      return '/menu?subscriptionSelection=1';
+    }
+
+    return null;
+  }
+
+  private sanitizarEtiqueta(label: unknown, target: string): string {
+    if (typeof label === 'string' && label.trim() !== '') {
+      return label.trim().replace(/\s+/g, ' ').slice(0, 40);
+    }
+
+    switch (target) {
+      case '/menu':
+        return 'Ver menu';
+      case '/menu?subscriptionSelection=1':
+        return 'Modificar seleccion';
+      case '/suscripcion':
+        return 'Gestionar suscripcion';
+      case '/perfil':
+        return 'Completar perfil';
+      case '/pago':
+        return 'Ir al pago';
+      case '/mis-pedidos':
+        return 'Ver mis pedidos';
+      case '/resumen':
+        return 'Ver carrito';
+      case '/como-funciona':
+        return 'Como funciona';
+      case '/login':
+        return 'Iniciar sesion';
+      case '/inicio':
+        return 'Ir a inicio';
+      default:
+        return 'Abrir';
+    }
+  }
+
+  private normalizarSource(source: unknown): AssistantResponseSource | undefined {
+    return source === 'openai' || source === 'fallback' || source === 'rules'
+      ? source
+      : undefined;
   }
 }

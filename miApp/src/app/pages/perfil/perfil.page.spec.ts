@@ -1,10 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { convertToParamMap, ActivatedRoute, Router } from '@angular/router';
+import { TranslateModule } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { PerfilPage } from './perfil.page';
 import { ProfileService } from '../../services/profile.service';
 import { CarritoService } from '../../services/carrito.service';
 import { UserSessionService } from '../../services/user-session.service';
+import { FirstOrderService } from '../../services/first-order.service';
 
 describe('PerfilPage', () => {
   let component: PerfilPage;
@@ -12,7 +14,7 @@ describe('PerfilPage', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PerfilPage],
+      imports: [PerfilPage, TranslateModule.forRoot()],
       providers: [
         {
           provide: ActivatedRoute,
@@ -72,14 +74,30 @@ describe('PerfilPage', () => {
           provide: CarritoService,
           useValue: {
             obtenerItems: jasmine.createSpy('obtenerItems').and.returnValue([]),
-            vaciarCarrito: jasmine.createSpy('vaciarCarrito')
+            vaciarCarrito: jasmine.createSpy('vaciarCarrito'),
+            reiniciarCarrito: jasmine.createSpy('reiniciarCarrito')
           }
         },
         {
           provide: UserSessionService,
           useValue: {
             haySesionActiva: jasmine.createSpy('haySesionActiva').and.returnValue(true),
-            obtenerUsuarioActual: jasmine.createSpy('obtenerUsuarioActual').and.returnValue({ id: 1, nombre: 'Test', email: 'test@test.com' })
+            obtenerUsuarioActual: jasmine.createSpy('obtenerUsuarioActual').and.returnValue({ id: 1, nombre: 'Test', email: 'test@test.com' }),
+            cerrarSesion: jasmine.createSpy('cerrarSesion')
+          }
+        },
+        {
+          provide: FirstOrderService,
+          useValue: {
+            estaActivo: jasmine.createSpy('estaActivo').and.returnValue(false),
+            esUsuarioRecienCreado: jasmine.createSpy('esUsuarioRecienCreado').and.returnValue(false),
+            obtenerFiltrosNutricionales: jasmine.createSpy('obtenerFiltrosNutricionales').and.returnValue({
+              alergenos: [],
+              objetivoNutricional: null,
+              preferenciasComposicion: []
+            }),
+            limpiarUsuarioRecienCreado: jasmine.createSpy('limpiarUsuarioRecienCreado'),
+            finalizarProceso: jasmine.createSpy('finalizarProceso')
           }
         }
       ]
