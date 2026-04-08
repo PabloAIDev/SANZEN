@@ -53,18 +53,22 @@ export class UserSessionService {
   }
 
   obtenerUsuarioActual(): SessionUser | null {
+    this.asegurarSesionVigente();
     return this.usuarioActual;
   }
 
   obtenerUsuarioIdActual(): number | null {
+    this.asegurarSesionVigente();
     return this.usuarioActual?.id ?? null;
   }
 
   obtenerTokenActual(): string | null {
+    this.asegurarSesionVigente();
     return this.usuarioActual?.token ?? null;
   }
 
   haySesionActiva(): boolean {
+    this.asegurarSesionVigente();
     return this.usuarioActual !== null;
   }
 
@@ -116,7 +120,50 @@ export class UserSessionService {
       typeof value.email === 'string' &&
       value.email.trim().length >= 5 &&
       typeof value.token === 'string' &&
-      value.token.trim().length > 0
+      value.token.trim().length > 0 &&
+      this.tokenEsValido(value.token, Number(value.id))
     );
+  }
+
+  private asegurarSesionVigente(): void {
+    if (!this.usuarioActual) {
+      return;
+    }
+
+    if (!this.tokenEsValido(this.usuarioActual.token, this.usuarioActual.id)) {
+      this.cerrarSesion();
+    }
+  }
+
+  private tokenEsValido(token: string | undefined, userIdEsperado: number): boolean {
+    if (typeof token !== 'string' || token.trim() === '') {
+      return false;
+    }
+
+    try {
+      const [encodedPayload] = token.trim().split('.');
+
+      if (!encodedPayload) {
+        return false;
+      }
+
+      const payloadText = this.decodificarBase64Url(encodedPayload);
+      const payload = JSON.parse(payloadText) as { userId?: unknown; exp?: unknown };
+      const userId = Number(payload.userId);
+      const exp = Number(payload.exp);
+
+      return Number.isInteger(userId) && userId === userIdEsperado && Number.isFinite(exp) && exp > Date.now();
+    } catch {
+      return false;
+    }
+  }
+
+  private decodificarBase64Url(value: string): string {
+    const normalized = value
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(value.length / 4) * 4, '=');
+
+    return atob(normalized);
   }
 }
