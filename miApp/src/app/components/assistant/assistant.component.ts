@@ -19,6 +19,7 @@ import {
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
+import { TranslateService } from '@ngx-translate/core';
 import { addIcons } from 'ionicons';
 import {
   closeOutline,
@@ -33,6 +34,7 @@ import {
 } from '../../models/assistant.model';
 import { AssistantService } from '../../services/assistant.service';
 import { UserSessionService } from '../../services/user-session.service';
+import { LanguageService } from '../../services/language.service';
 
 @Component({
   selector: 'app-assistant',
@@ -67,12 +69,15 @@ export class AssistantComponent implements OnInit, OnDestroy {
 
   private routerSubscription?: Subscription;
   private sessionSubscription?: Subscription;
+  private languageSubscription?: Subscription;
   private ultimoUsuarioId: number | null = null;
 
   constructor(
     private router: Router,
     private assistantService: AssistantService,
-    private userSessionService: UserSessionService
+    private userSessionService: UserSessionService,
+    private languageService: LanguageService,
+    private translateService: TranslateService
   ) {
     addIcons({
       closeOutline,
@@ -104,12 +109,17 @@ export class AssistantComponent implements OnInit, OnDestroy {
       this.limpiarConversacion();
     });
 
+    this.languageSubscription = this.languageService.currentLanguage$.subscribe(() => {
+      this.actualizarMensajeInicialSiProcede();
+    });
+
     this.sembrarMensajeInicial();
   }
 
   ngOnDestroy(): void {
     this.routerSubscription?.unsubscribe();
     this.sessionSubscription?.unsubscribe();
+    this.languageSubscription?.unsubscribe();
   }
 
   abrirAsistente(): void {
@@ -155,7 +165,7 @@ export class AssistantComponent implements OnInit, OnDestroy {
       this.mensajes.push({
         id: crypto.randomUUID(),
         role: 'assistant',
-        text: 'No he podido responder ahora mismo. Inténtalo de nuevo en unos segundos.'
+        text: this.translateService.instant('ASSISTANT.ERROR_FALLBACK')
       });
       this.ultimoOrigenRespuesta = null;
     } finally {
@@ -184,34 +194,66 @@ export class AssistantComponent implements OnInit, OnDestroy {
 
   obtenerEtiquetaOrigen(): string {
     if (this.ultimoOrigenRespuesta === 'openai') {
-      return 'Motor: OpenAI';
+      return this.translateService.instant('ASSISTANT.SOURCE.OPENAI');
     }
 
     if (this.ultimoOrigenRespuesta === 'rules') {
-      return 'Motor: reglas';
+      return this.translateService.instant('ASSISTANT.SOURCE.RULES');
     }
 
     if (this.ultimoOrigenRespuesta === 'fallback') {
-      return 'Motor: local';
+      return this.translateService.instant('ASSISTANT.SOURCE.FALLBACK');
     }
 
     return '';
   }
 
   obtenerSugerenciasRapidas(): string[] {
+    return this.obtenerClavesSugerencias().map((key) => this.translateService.instant(key));
+  }
+
+  obtenerAriaAbrir(): string {
+    return this.translateService.instant('ASSISTANT.OPEN_ARIA');
+  }
+
+  obtenerTitulo(): string {
+    return this.translateService.instant('ASSISTANT.TITLE');
+  }
+
+  obtenerAriaReiniciar(): string {
+    return this.translateService.instant('ASSISTANT.RESET_ARIA');
+  }
+
+  obtenerAriaCerrar(): string {
+    return this.translateService.instant('ASSISTANT.CLOSE_ARIA');
+  }
+
+  obtenerEtiquetaPantallaActual(): string {
+    return this.translateService.instant('ASSISTANT.CURRENT_SCREEN', { screen: this.pantallaActual });
+  }
+
+  obtenerTextoPensando(): string {
+    return this.translateService.instant('ASSISTANT.THINKING');
+  }
+
+  obtenerPlaceholder(): string {
+    return this.translateService.instant('ASSISTANT.PLACEHOLDER');
+  }
+
+  private obtenerClavesSugerencias(): string[] {
     switch (this.pantallaActual) {
       case 'menu':
-        return ['¿Qué me recomiendas?', '¿Me conviene suscripción o pedido individual?', '¿Por qué no puedo continuar?'];
+        return ['ASSISTANT.QUICK.MENU.RECOMMEND', 'ASSISTANT.QUICK.MENU.COMPARE', 'ASSISTANT.QUICK.MENU.BLOCKING'];
       case 'resumen':
-        return ['¿Por qué no puedo continuar?', 'Resume mi carrito', '¿Me conviene suscripción?'];
+        return ['ASSISTANT.QUICK.SUMMARY.BLOCKING', 'ASSISTANT.QUICK.SUMMARY.CART', 'ASSISTANT.QUICK.SUMMARY.SUBSCRIPTION'];
       case 'pago':
-        return ['¿Por qué no puedo continuar?', '¿Qué datos me faltan?', 'Resume mi pedido'];
+        return ['ASSISTANT.QUICK.PAYMENT.BLOCKING', 'ASSISTANT.QUICK.PAYMENT.MISSING', 'ASSISTANT.QUICK.PAYMENT.ORDER'];
       case 'suscripcion':
-        return ['¿Qué contiene mi suscripción actual?', '¿Cómo renuevo o modifico mi suscripción?', '¿Cuál es mi último pedido?'];
+        return ['ASSISTANT.QUICK.SUBSCRIPTION.CONTENT', 'ASSISTANT.QUICK.SUBSCRIPTION.RENEW', 'ASSISTANT.QUICK.SUBSCRIPTION.LAST_ORDER'];
       case 'mis-pedidos':
-        return ['¿Cuál fue mi último pedido?', 'Resume mis pedidos', '¿Cómo funciona la renovación semanal?'];
+        return ['ASSISTANT.QUICK.ORDERS.LAST_ORDER', 'ASSISTANT.QUICK.ORDERS.SUMMARY', 'ASSISTANT.QUICK.ORDERS.RENEWAL'];
       default:
-        return ['¿Cómo funciona SANZEN?', '¿Qué me recomiendas?', '¿Suscripción o pedido individual?'];
+        return ['ASSISTANT.QUICK.DEFAULT.HOW', 'ASSISTANT.QUICK.DEFAULT.RECOMMEND', 'ASSISTANT.QUICK.DEFAULT.COMPARE'];
     }
   }
 
@@ -264,7 +306,18 @@ export class AssistantComponent implements OnInit, OnDestroy {
     this.mensajes.push({
       id: crypto.randomUUID(),
       role: 'assistant',
-      text: 'Soy el asistente de SANZEN. Puedo ayudarte a elegir platos, entender tu suscripción o explicarte por qué no puedes continuar.'
+      text: this.translateService.instant('ASSISTANT.SEED_MESSAGE')
     });
+  }
+
+  private actualizarMensajeInicialSiProcede(): void {
+    if (this.mensajes.length !== 1 || this.mensajes[0]?.role !== 'assistant') {
+      return;
+    }
+
+    this.mensajes = [{
+      ...this.mensajes[0],
+      text: this.translateService.instant('ASSISTANT.SEED_MESSAGE')
+    }];
   }
 }

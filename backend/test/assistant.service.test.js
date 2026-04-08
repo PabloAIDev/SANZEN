@@ -119,7 +119,7 @@ test('sanitizeAssistantResponse solo mantiene acciones navigate permitidas', () 
   );
 
   assert.deepEqual(response.actions, [
-    { type: 'navigate', target: '/menu?subscriptionSelection=1', label: 'Ir al menu' },
+    { type: 'navigate', target: '/menu?subscriptionSelection=1', label: 'Modificar seleccion' },
     { type: 'navigate', target: '/perfil', label: 'Completar perfil' }
   ]);
 });
@@ -265,6 +265,33 @@ test('generateAssistantResponse mantiene el contexto corto en preguntas de segui
     assert.ok(response.message.includes('Pollo con arroz'));
     assert.ok(!response.message.includes('Gyozas clasicas'));
     assert.ok(response.message.indexOf('Sopa miso') < response.message.indexOf('Pollo con arroz'));
+  } finally {
+    if (originalApiKey === undefined) {
+      delete process.env.OPENAI_API_KEY;
+    } else {
+      process.env.OPENAI_API_KEY = originalApiKey;
+    }
+  }
+});
+
+test('generateAssistantResponse responde en ingles para preguntas guiadas cuando el idioma es en', async () => {
+  const originalApiKey = process.env.OPENAI_API_KEY;
+
+  try {
+    delete process.env.OPENAI_API_KEY;
+
+    const response = await generateAssistantResponse({
+      message: 'How does SANZEN work?',
+      context: createContext(),
+      history: [],
+      language: 'en'
+    });
+
+    assert.equal(response.source, 'rules');
+    assert.match(response.message, /In SANZEN|You can currently use SANZEN|You can place individual orders/i);
+    assert.deepEqual(response.actions, [
+      { type: 'navigate', target: '/como-funciona', label: 'How it works' }
+    ]);
   } finally {
     if (originalApiKey === undefined) {
       delete process.env.OPENAI_API_KEY;

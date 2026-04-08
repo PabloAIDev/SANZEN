@@ -3,7 +3,7 @@
   [class.assistant-trigger-menu]="pantallaActual === 'menu'"
   shape="round"
   (click)="abrirAsistente()"
-  aria-label="Abrir asistente IA">
+  [attr.aria-label]="obtenerAriaAbrir()">
   <img class="assistant-trigger-image" src="assets/img/assistant-icon.png" alt="" />
 </ion-button>
 
@@ -11,12 +11,12 @@
   <ng-template>
     <ion-header>
       <ion-toolbar>
-        <ion-title class="assistant-modal-title">Asistente SANZEN</ion-title>
+        <ion-title class="assistant-modal-title">{{ obtenerTitulo() }}</ion-title>
         <ion-buttons slot="end">
-          <ion-button (click)="limpiarConversacion()" aria-label="Reiniciar conversación">
+          <ion-button (click)="limpiarConversacion()" [attr.aria-label]="obtenerAriaReiniciar()">
             <ion-icon slot="icon-only" name="refresh-outline"></ion-icon>
           </ion-button>
-          <ion-button (click)="cerrarAsistente()" aria-label="Cerrar asistente">
+          <ion-button (click)="cerrarAsistente()" [attr.aria-label]="obtenerAriaCerrar()">
             <ion-icon slot="icon-only" name="close-outline"></ion-icon>
           </ion-button>
         </ion-buttons>
@@ -25,7 +25,7 @@
 
     <ion-content class="assistant-content">
       <div class="assistant-status-row">
-        <div class="assistant-screen-tag">Pantalla actual: {{ pantallaActual }}</div>
+        <div class="assistant-screen-tag">{{ obtenerEtiquetaPantallaActual() }}</div>
 
         @if (obtenerEtiquetaOrigen()) {
           <div
@@ -68,7 +68,7 @@
         @if (enviando) {
           <div class="assistant-message assistant-message-bot assistant-message-loading">
             <ion-spinner name="crescent"></ion-spinner>
-            <p>Pensando...</p>
+            <p>{{ obtenerTextoPensando() }}</p>
           </div>
         }
       </div>
@@ -81,7 +81,7 @@
           autoGrow="true"
           rows="1"
           maxlength="600"
-          placeholder="Escribe tu pregunta">
+          [placeholder]="obtenerPlaceholder()">
         </ion-textarea>
 
         <ion-button

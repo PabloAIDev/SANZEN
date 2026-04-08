@@ -26,6 +26,10 @@ function normalizarArrayTextos(valor) {
   return valor.filter((item) => typeof item === 'string').map((item) => item.trim()).filter(Boolean);
 }
 
+function normalizarIdioma(valor) {
+  return valor === 'en' ? 'en' : 'es';
+}
+
 function textoValido(valor, minimo) {
   return normalizarTexto(valor).length >= minimo;
 }
@@ -224,6 +228,52 @@ function normalizarCartContext(context) {
   };
 }
 
+function normalizarCatalogoCliente(context) {
+  if (!Array.isArray(context?.catalog)) {
+    return [];
+  }
+
+  return context.catalog
+    .filter((item) => item && typeof item === 'object')
+    .map((item) => ({
+      id: normalizarNumero(item.id),
+      name: normalizarTexto(item.name),
+      description: normalizarTexto(item.description),
+      category: normalizarTexto(item.category),
+      allergens: normalizarArrayTextos(item.allergens),
+      ingredients: normalizarArrayTextos(item.ingredients),
+      sideDishes: normalizarArrayTextos(item.sideDishes ?? item.side_dishes)
+    }))
+    .filter((item) => item.id > 0);
+}
+
+function crearMapaCatalogoCliente(catalogoCliente) {
+  return new Map(
+    catalogoCliente.map((item) => [item.id, item])
+  );
+}
+
+function aplicarNombreCliente(itemId, fallback, catalogoClienteMap) {
+  return catalogoClienteMap.get(itemId)?.name || normalizarTexto(fallback);
+}
+
+function enriquecerPlatoDesdeCliente(plato, catalogoClienteMap) {
+  const traduccionCliente = catalogoClienteMap.get(plato.id);
+
+  if (!traduccionCliente) {
+    return plato;
+  }
+
+  return {
+    ...plato,
+    name: traduccionCliente.name || plato.name,
+    description: traduccionCliente.description || plato.description,
+    allergens: traduccionCliente.allergens.length ? traduccionCliente.allergens : plato.allergens,
+    ingredients: traduccionCliente.ingredients.length ? traduccionCliente.ingredients : plato.ingredients,
+    sideDishes: traduccionCliente.sideDishes.length ? traduccionCliente.sideDishes : plato.sideDishes
+  };
+}
+
 function normalizarSubscriptionContext(context) {
   const subscription = context?.subscription ?? {};
 
@@ -274,8 +324,11 @@ function normalizarFirstOrderContext(context) {
 }
 
 async function buildAssistantContext({ userId, screen, clientContext }) {
+  const catalogoCliente = normalizarCatalogoCliente(clientContext);
+  const catalogoClienteMap = crearMapaCatalogoCliente(catalogoCliente);
   const context = {
     screen: normalizarTexto(screen) || 'inicio',
+    language: normalizarIdioma(clientContext?.language),
     userAuthenticated: Boolean(userId),
     user: null,
     profile: normalizarProfileContext(clientContext),
@@ -436,7 +489,7 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
           : '',
         items: subscriptionItemsRows.map((item) => ({
           id: normalizarNumero(item.plato_id),
-          name: normalizarTexto(item.nombre),
+          name: aplicarNombreCliente(normalizarNumero(item.plato_id), item.nombre, catalogoClienteMap),
           quantity: normalizarNumero(item.cantidad)
         }))
       };
@@ -543,7 +596,7 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
         subscription: Boolean(lastOrderRow.es_suscripcion),
         items: orderItemsRows.slice(0, 5).map((item) => ({
           id: normalizarNumero(item.plato_id),
-          name: normalizarTexto(item.nombre),
+          name: aplicarNombreCliente(normalizarNumero(item.plato_id), item.nombre, catalogoClienteMap),
           quantity: normalizarNumero(item.cantidad)
         }))
       };
@@ -585,7 +638,7 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
     `
   );
 
-  context.catalog = catalogRows.map((item) => ({
+  context.catalog = catalogRows.map((item) => enriquecerPlatoDesdeCliente({
     id: normalizarNumero(item.id),
     name: normalizarTexto(item.nombre),
     description: normalizarTexto(item.descripcion),
@@ -597,8 +650,10 @@ async function buildAssistantContext({ userId, screen, clientContext }) {
     carbohydratesG: normalizarNumero(item.carbohydrates_g),
     fatG: normalizarNumero(item.fat_g),
     fiberG: normalizarNumero(item.fiber_g),
-    allergens: parseJsonArray(item.allergens).map((allergen) => normalizarTexto(allergen))
-  }));
+    allergens: parseJsonArray(item.allergens).map((allergen) => normalizarTexto(allergen)),
+    ingredients: [],
+    sideDishes: []
+  }, catalogoClienteMap));
 
   return context;
 }

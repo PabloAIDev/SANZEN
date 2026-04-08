@@ -414,5 +414,66 @@
         "TEXT": "Repeat orders reuse your saved profile. If you have an active subscription, you can review your current selection, modify it or renew it manually from Manage subscription."
       }
     }
+  },
+  "ASSISTANT": {
+    "TITLE": "SANZEN Assistant",
+    "OPEN_ARIA": "Open AI assistant",
+    "RESET_ARIA": "Reset conversation",
+    "CLOSE_ARIA": "Close assistant",
+    "CURRENT_SCREEN": "Current screen: {{screen}}",
+    "THINKING": "Thinking...",
+    "PLACEHOLDER": "Write your question",
+    "SEED_MESSAGE": "I am the SANZEN assistant. I can help you choose dishes, understand your subscription or explain why you cannot continue.",
+    "ERROR_FALLBACK": "I could not answer right now. Please try again in a few seconds.",
+    "SOURCE": {
+      "OPENAI": "Engine: OpenAI",
+      "RULES": "Engine: rules",
+      "FALLBACK": "Engine: local"
+    },
+    "ACTIONS": {
+      "VIEW_MENU": "View menu",
+      "EDIT_SELECTION": "Edit selection",
+      "MANAGE_SUBSCRIPTION": "Manage subscription",
+      "COMPLETE_PROFILE": "Complete profile",
+      "GO_TO_PAYMENT": "Go to payment",
+      "VIEW_ORDERS": "View my orders",
+      "VIEW_CART": "View cart",
+      "HOW_IT_WORKS": "How it works",
+      "SIGN_IN": "Sign in",
+      "GO_HOME": "Go to home",
+      "OPEN": "Open"
+    },
+    "QUICK": {
+      "DEFAULT": {
+        "HOW": "How does SANZEN work?",
+        "RECOMMEND": "What do you recommend?",
+        "COMPARE": "Subscription or individual order?"
+      },
+      "MENU": {
+        "RECOMMEND": "What do you recommend?",
+        "COMPARE": "Should I choose a subscription or an individual order?",
+        "BLOCKING": "Why can't I continue?"
+      },
+      "SUMMARY": {
+        "BLOCKING": "Why can't I continue?",
+        "CART": "Summarise my cart",
+        "SUBSCRIPTION": "Should I choose a subscription?"
+      },
+      "PAYMENT": {
+        "BLOCKING": "Why can't I continue?",
+        "MISSING": "What information am I missing?",
+        "ORDER": "Summarise my order"
+      },
+      "SUBSCRIPTION": {
+        "CONTENT": "What does my current subscription contain?",
+        "RENEW": "How do I renew or modify my subscription?",
+        "LAST_ORDER": "What was my last order?"
+      },
+      "ORDERS": {
+        "LAST_ORDER": "What was my last order?",
+        "SUMMARY": "Summarise my orders",
+        "RENEWAL": "How does weekly renewal work?"
+      }
+    }
   }
 }

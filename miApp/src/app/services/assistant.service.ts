@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { TranslateService } from '@ngx-translate/core';
 import {
   AssistantAction,
   AssistantHistoryEntry,
@@ -13,6 +14,8 @@ import { CarritoService } from './carrito.service';
 import { OrderService } from './order.service';
 import { FirstOrderService } from './first-order.service';
 import { UserSessionService } from './user-session.service';
+import { LanguageService } from './language.service';
+import { PlatoService } from './plato.service';
 
 @Injectable({
   providedIn: 'root'
@@ -38,7 +41,10 @@ export class AssistantService {
     private carritoService: CarritoService,
     private orderService: OrderService,
     private firstOrderService: FirstOrderService,
-    private userSessionService: UserSessionService
+    private userSessionService: UserSessionService,
+    private languageService: LanguageService,
+    private platoService: PlatoService,
+    private translateService: TranslateService
   ) {}
 
   async sendMessage(
@@ -50,6 +56,7 @@ export class AssistantService {
       this.http.post<AssistantResponse>(this.apiUrl, {
         message,
         screen,
+        language: this.languageService.getCurrentLanguage(),
         history,
         context: this.buildClientContext()
       })
@@ -119,7 +126,17 @@ export class AssistantService {
             total: ultimoPedido.total,
             subscription: ultimoPedido.esSuscripcion
           }
-        : null
+        : null,
+      language: this.languageService.getCurrentLanguage(),
+      catalog: this.platoService.obtenerPlatos().map((plato) => ({
+        id: plato.id,
+        name: plato.name,
+        description: plato.description,
+        category: plato.category,
+        allergens: [...plato.allergens],
+        ingredients: [...plato.ingredients],
+        sideDishes: [...plato.side_dishes]
+      }))
     };
   }
 
@@ -147,7 +164,7 @@ export class AssistantService {
   private normalizarRespuesta(response: Partial<AssistantResponse> | null | undefined): AssistantResponse {
     const message = typeof response?.message === 'string' && response.message.trim() !== ''
       ? response.message.trim()
-      : 'No he podido responder ahora mismo. Intentalo de nuevo en unos segundos.';
+      : this.translateService.instant('ASSISTANT.ERROR_FALLBACK');
 
     const actions = Array.isArray(response?.actions)
       ? response.actions
@@ -195,33 +212,31 @@ export class AssistantService {
   }
 
   private sanitizarEtiqueta(label: unknown, target: string): string {
-    if (typeof label === 'string' && label.trim() !== '') {
-      return label.trim().replace(/\s+/g, ' ').slice(0, 40);
-    }
-
     switch (target) {
       case '/menu':
-        return 'Ver menu';
+        return this.translateService.instant('ASSISTANT.ACTIONS.VIEW_MENU');
       case '/menu?subscriptionSelection=1':
-        return 'Modificar seleccion';
+        return this.translateService.instant('ASSISTANT.ACTIONS.EDIT_SELECTION');
       case '/suscripcion':
-        return 'Gestionar suscripcion';
+        return this.translateService.instant('ASSISTANT.ACTIONS.MANAGE_SUBSCRIPTION');
       case '/perfil':
-        return 'Completar perfil';
+        return this.translateService.instant('ASSISTANT.ACTIONS.COMPLETE_PROFILE');
       case '/pago':
-        return 'Ir al pago';
+        return this.translateService.instant('ASSISTANT.ACTIONS.GO_TO_PAYMENT');
       case '/mis-pedidos':
-        return 'Ver mis pedidos';
+        return this.translateService.instant('ASSISTANT.ACTIONS.VIEW_ORDERS');
       case '/resumen':
-        return 'Ver carrito';
+        return this.translateService.instant('ASSISTANT.ACTIONS.VIEW_CART');
       case '/como-funciona':
-        return 'Como funciona';
+        return this.translateService.instant('ASSISTANT.ACTIONS.HOW_IT_WORKS');
       case '/login':
-        return 'Iniciar sesion';
+        return this.translateService.instant('ASSISTANT.ACTIONS.SIGN_IN');
       case '/inicio':
-        return 'Ir a inicio';
+        return this.translateService.instant('ASSISTANT.ACTIONS.GO_HOME');
       default:
-        return 'Abrir';
+        return typeof label === 'string' && label.trim() !== ''
+          ? label.trim().replace(/\s+/g, ' ').slice(0, 40)
+          : this.translateService.instant('ASSISTANT.ACTIONS.OPEN');
     }
   }
 

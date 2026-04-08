@@ -414,5 +414,66 @@
         "TEXT": "Los pedidos posteriores reutilizan tu perfil guardado. Si tienes suscripción activa, puedes revisar tu selección actual, modificarla o renovarla manualmente desde Gestionar suscripción."
       }
     }
+  },
+  "ASSISTANT": {
+    "TITLE": "Asistente SANZEN",
+    "OPEN_ARIA": "Abrir asistente IA",
+    "RESET_ARIA": "Reiniciar conversación",
+    "CLOSE_ARIA": "Cerrar asistente",
+    "CURRENT_SCREEN": "Pantalla actual: {{screen}}",
+    "THINKING": "Pensando...",
+    "PLACEHOLDER": "Escribe tu pregunta",
+    "SEED_MESSAGE": "Soy el asistente de SANZEN. Puedo ayudarte a elegir platos, entender tu suscripción o explicarte por qué no puedes continuar.",
+    "ERROR_FALLBACK": "No he podido responder ahora mismo. Inténtalo de nuevo en unos segundos.",
+    "SOURCE": {
+      "OPENAI": "Motor: OpenAI",
+      "RULES": "Motor: reglas",
+      "FALLBACK": "Motor: local"
+    },
+    "ACTIONS": {
+      "VIEW_MENU": "Ver menú",
+      "EDIT_SELECTION": "Modificar selección",
+      "MANAGE_SUBSCRIPTION": "Gestionar suscripción",
+      "COMPLETE_PROFILE": "Completar perfil",
+      "GO_TO_PAYMENT": "Ir al pago",
+      "VIEW_ORDERS": "Ver mis pedidos",
+      "VIEW_CART": "Ver carrito",
+      "HOW_IT_WORKS": "Cómo funciona",
+      "SIGN_IN": "Iniciar sesión",
+      "GO_HOME": "Ir a inicio",
+      "OPEN": "Abrir"
+    },
+    "QUICK": {
+      "DEFAULT": {
+        "HOW": "¿Cómo funciona SANZEN?",
+        "RECOMMEND": "¿Qué me recomiendas?",
+        "COMPARE": "¿Suscripción o pedido individual?"
+      },
+      "MENU": {
+        "RECOMMEND": "¿Qué me recomiendas?",
+        "COMPARE": "¿Me conviene suscripción o pedido individual?",
+        "BLOCKING": "¿Por qué no puedo continuar?"
+      },
+      "SUMMARY": {
+        "BLOCKING": "¿Por qué no puedo continuar?",
+        "CART": "Resume mi carrito",
+        "SUBSCRIPTION": "¿Me conviene suscripción?"
+      },
+      "PAYMENT": {
+        "BLOCKING": "¿Por qué no puedo continuar?",
+        "MISSING": "¿Qué datos me faltan?",
+        "ORDER": "Resume mi pedido"
+      },
+      "SUBSCRIPTION": {
+        "CONTENT": "¿Qué contiene mi suscripción actual?",
+        "RENEW": "¿Cómo renuevo o modifico mi suscripción?",
+        "LAST_ORDER": "¿Cuál es mi último pedido?"
+      },
+      "ORDERS": {
+        "LAST_ORDER": "¿Cuál fue mi último pedido?",
+        "SUMMARY": "Resume mis pedidos",
+        "RENEWAL": "¿Cómo funciona la renovación semanal?"
+      }
+    }
   }
 }
