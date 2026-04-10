@@ -180,6 +180,8 @@
     "TOP_HEALTHY": "Top healthy",
     "NO_RESULTS": "No dishes match the selected filters.",
     "SELECTED_PLATES": "Selected dishes: {{count}}",
+    "SELECTED_WEEKLY_DISHES": "Subscription dishes: {{count}}",
+    "EXTRA_ITEMS": "Extra items in cart: {{count}}",
     "TOTAL_ACCUMULATED": "Running total: {{total}}",
     "SUBSCRIPTION_SAVINGS": "With a subscription you would save {{amount}}",
     "FILTERS_TITLE": "Nutritional preferences",

@@ -281,6 +281,12 @@
           <span>{{ obtenerMensajeTotalAcumulado() }}</span>
         </div>
 
+        @if (suscripcionActiva && obtenerCantidadExtrasCarrito() > 0) {
+          <div class="resumen-inferior-descuento">
+            <span>{{ obtenerMensajeExtrasCarrito() }}</span>
+          </div>
+        }
+
         @if (mostrarAhorroSuscripcion()) {
           <div class="resumen-inferior-descuento">
             <span>{{ obtenerMensajeAhorroSuscripcion() }}</span>

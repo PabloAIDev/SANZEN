@@ -387,8 +387,18 @@ export class MenuPage implements OnInit {
   }
 
   obtenerMensajePlatosSeleccionados(): string {
-    return this.translateService.instant('MENU.SELECTED_PLATES', {
-      count: this.obtenerCantidadTotalItems()
+    const translationKey = this.suscripcionActiva
+      ? 'MENU.SELECTED_WEEKLY_DISHES'
+      : 'MENU.SELECTED_PLATES';
+
+    return this.translateService.instant(translationKey, {
+      count: this.obtenerCantidadResumenSeleccion()
+    });
+  }
+
+  obtenerMensajeExtrasCarrito(): string {
+    return this.translateService.instant('MENU.EXTRA_ITEMS', {
+      count: this.obtenerCantidadExtrasCarrito()
     });
   }
 
@@ -416,6 +426,22 @@ export class MenuPage implements OnInit {
 
   mostrarAhorroSuscripcion(): boolean {
     return !this.suscripcionActiva && this.obtenerTotalSeleccionActual() > 0;
+  }
+
+  obtenerCantidadResumenSeleccion(): number {
+    if (!this.suscripcionActiva) {
+      return this.obtenerCantidadTotalItems();
+    }
+
+    return this.platosSuscripcionSeleccionadosIds.length;
+  }
+
+  obtenerCantidadExtrasCarrito(): number {
+    if (!this.suscripcionActiva) {
+      return 0;
+    }
+
+    return Math.max(this.obtenerCantidadTotalItems() - this.obtenerCantidadResumenSeleccion(), 0);
   }
 
   filtrarPlatos(): void {

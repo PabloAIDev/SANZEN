@@ -180,6 +180,8 @@
     "TOP_HEALTHY": "Top healthy",
     "NO_RESULTS": "No hay platos que coincidan con los filtros.",
     "SELECTED_PLATES": "Platos seleccionados: {{count}}",
+    "SELECTED_WEEKLY_DISHES": "Platos de suscripción: {{count}}",
+    "EXTRA_ITEMS": "Extras en carrito: {{count}}",
     "TOTAL_ACCUMULATED": "Total acumulado: {{total}}",
     "SUBSCRIPTION_SAVINGS": "Con suscripción ahorrarías {{amount}}",
     "FILTERS_TITLE": "Preferencias nutricionales",

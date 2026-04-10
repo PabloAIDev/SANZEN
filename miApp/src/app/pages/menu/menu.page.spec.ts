@@ -14,6 +14,8 @@ import { FirstOrderService } from '../../services/first-order.service';
 describe('MenuPage', () => {
   let component: MenuPage;
   let fixture: ComponentFixture<MenuPage>;
+  let carritoService: jasmine.SpyObj<CarritoService>;
+  let subscriptionService: jasmine.SpyObj<SubscriptionService>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -124,10 +126,30 @@ describe('MenuPage', () => {
 
     fixture = TestBed.createComponent(MenuPage);
     component = fixture.componentInstance;
+    carritoService = TestBed.inject(CarritoService) as jasmine.SpyObj<CarritoService>;
+    subscriptionService = TestBed.inject(SubscriptionService) as jasmine.SpyObj<SubscriptionService>;
     fixture.detectChanges();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('muestra la cantidad real de platos de suscripcion aunque haya extras en carrito', () => {
+    component.suscripcionActiva = true;
+    component.platosSuscripcionSeleccionadosIds = [1, 2, 3, 4];
+    carritoService.obtenerCantidadTotalItems.and.returnValue(5);
+
+    expect(component.obtenerCantidadResumenSeleccion()).toBe(4);
+    expect(component.obtenerCantidadExtrasCarrito()).toBe(1);
+  });
+
+  it('usa el total del carrito cuando no hay suscripcion activa', () => {
+    component.suscripcionActiva = false;
+    component.platosSuscripcionSeleccionadosIds = [1, 2, 3, 4];
+    carritoService.obtenerCantidadTotalItems.and.returnValue(5);
+
+    expect(component.obtenerCantidadResumenSeleccion()).toBe(5);
+    expect(component.obtenerCantidadExtrasCarrito()).toBe(0);
   });
 });
