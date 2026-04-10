@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { Pedido } from '../models/order.model';
 import { UserSessionService } from './user-session.service';
 
@@ -10,7 +11,7 @@ import { UserSessionService } from './user-session.service';
 export class OrderService {
   private readonly storageKeyBase = 'sanzen-orders';
   private readonly ultimoPedidoKeyBase = 'sanzen-last-order-id';
-  private readonly apiUrl = 'http://localhost:3000/api/pedidos';
+  private readonly apiUrl = `${environment.apiBaseUrl}/pedidos`;
   private pedidosCache: Pedido[] = [];
   private cacheUsuarioId: number | null = null;
 
@@ -56,6 +57,28 @@ export class OrderService {
       console.warn('No se ha podido guardar el pedido en la API. Se conserva en localStorage.', error);
       return pedidoNormalizado;
     }
+  }
+
+  async guardarPedidoPersistido(pedido: Pedido): Promise<Pedido> {
+    this.sincronizarCacheConUsuarioActual();
+    const pedidoNormalizado = this.normalizarPedido(pedido);
+    const userId = this.userSessionService.obtenerUsuarioIdActual();
+
+    if (!userId) {
+      throw new Error('No hay usuario activo para guardar el pedido.');
+    }
+
+    const pedidoApi = await firstValueFrom(
+      this.http.post<Pedido>(this.apiUrl, {
+        ...pedidoNormalizado,
+        userId
+      })
+    );
+
+    const pedidoPersistido = this.normalizarPedido(pedidoApi);
+    this.actualizarCacheConPedido(pedidoPersistido);
+    localStorage.setItem(this.obtenerUltimoPedidoKey(), pedidoPersistido.id);
+    return pedidoPersistido;
   }
 
   obtenerUltimoPedido(): Pedido | null {

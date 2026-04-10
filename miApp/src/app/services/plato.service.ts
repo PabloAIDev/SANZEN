@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 import {Macronutrients, Plato} from '../models/plato.model';
 import { ENGLISH_PLATO_TRANSLATIONS } from '../data/plato-translations.data';
 import { AppLanguage, LanguageService } from './language.service';
@@ -34,7 +35,7 @@ interface PlatoSpanishSnapshot {
   providedIn: 'root'
 })
 export class PlatoService {
-  private readonly apiUrl = 'http://localhost:3000/api/platos';
+  private readonly apiUrl = `${environment.apiBaseUrl}/platos`;
 
   private platos: Plato[] = [
     {

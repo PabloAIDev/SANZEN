@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 import {
   DiaEntregaSemanal,
   PlanSemanal,
@@ -15,7 +16,7 @@ import { UserSessionService } from './user-session.service';
 export class SubscriptionService {
   private readonly minimoPlatosSuscripcion = 5;
   private readonly storageKeyBase = 'sanzen-user-subscription';
-  private readonly apiUrl = 'http://localhost:3000/api/suscripciones';
+  private readonly apiUrl = `${environment.apiBaseUrl}/suscripciones`;
   private readonly diasEntregaSemana: DiaEntregaSemanal[] = [
     'lunes',
     'martes',
@@ -101,6 +102,13 @@ export class SubscriptionService {
     this.sincronizarCacheConUsuarioActual();
     const suscripcionActual = this.normalizarSuscripcion(this.suscripcionCache);
     await this.guardarEnApi(suscripcionActual);
+    return this.obtenerSuscripcion();
+  }
+
+  async persistirSuscripcionActualEstricto(): Promise<UserSubscription> {
+    this.sincronizarCacheConUsuarioActual();
+    const suscripcionActual = this.normalizarSuscripcion(this.suscripcionCache);
+    await this.guardarEnApiEstricto(suscripcionActual);
     return this.obtenerSuscripcion();
   }
 
@@ -271,6 +279,24 @@ export class SubscriptionService {
     } catch (error) {
       console.warn('No se ha podido guardar la suscripcion en la API. Se conserva localmente.', error);
     }
+  }
+
+  private async guardarEnApiEstricto(suscripcion: UserSubscription): Promise<void> {
+    const userId = this.userSessionService.obtenerUsuarioIdActual();
+
+    if (!userId) {
+      throw new Error('No hay usuario activo para guardar la suscripcion.');
+    }
+
+    const suscripcionApi = await firstValueFrom(
+      this.http.put<UserSubscription>(this.apiUrl, {
+        ...suscripcion,
+        userId
+      })
+    );
+
+    this.suscripcionCache = this.normalizarSuscripcion(suscripcionApi);
+    this.persistirLocal();
   }
 
   private persistirLocal(): void {

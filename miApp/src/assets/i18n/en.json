@@ -342,7 +342,8 @@
       "CARDHOLDER": "Enter letters only in the cardholder name, exactly as it appears on the card.",
       "CARD_NUMBER": "Enter a 16-digit card number.",
       "EXPIRY": "Use MM/YY format and a non-expired date.",
-      "CVV": "CVV must contain exactly 3 digits."
+      "CVV": "CVV must contain exactly 3 digits.",
+      "CONFIRMATION": "The order could not be registered on the server. Check the connection and try again."
     },
     "INSTRUCTIONS_PREFIX": "Instructions: {{value}}"
   },

@@ -81,6 +81,7 @@ export class PagoPage implements OnInit {
   items: CarritoItem[] = [];
   procesandoPago = false;
   intentoConfirmarPedido = false;
+  errorConfirmacion = '';
 
   direcciones: DireccionEntrega[] = [];
   direccionSeleccionadaId: number | null = null;
@@ -329,6 +330,7 @@ export class PagoPage implements OnInit {
 
   async confirmarPedido(): Promise<void> {
     this.intentoConfirmarPedido = true;
+    this.errorConfirmacion = '';
 
     if (!this.puedeConfirmarPedido() || this.procesandoPago) {
       return;
@@ -338,28 +340,34 @@ export class PagoPage implements OnInit {
 
     const pedidoEsSuscripcion = this.esPedidoSuscripcion();
 
-    if (this.firstOrderService.estaActivo() && this.firstOrderService.esModoSuscripcion()) {
-      await this.subscriptionService.persistirSuscripcionActual();
-    }
-
-    await this.guardarTarjetaEnPerfil();
-    await this.guardarPedidoConfirmado();
-
-    await this.orderService.refrescarDesdeApi();
-    if (pedidoEsSuscripcion) {
-      await this.subscriptionService.refrescarDesdeApi();
-    }
-
-    this.firstOrderService.finalizarProceso();
-
-    setTimeout(() => {
-      if (pedidoEsSuscripcion) {
-        this.carritoService.reiniciarCarrito();
-      } else {
-        this.carritoService.vaciarCarrito();
+    try {
+      if (this.firstOrderService.estaActivo() && this.firstOrderService.esModoSuscripcion()) {
+        await this.subscriptionService.persistirSuscripcionActualEstricto();
       }
-      this.router.navigateByUrl('/confirmacion');
-    }, 1000);
+
+      await this.guardarTarjetaEnPerfil();
+      await this.guardarPedidoConfirmado();
+
+      await this.orderService.refrescarDesdeApi();
+      if (pedidoEsSuscripcion) {
+        await this.subscriptionService.refrescarDesdeApi();
+      }
+
+      this.firstOrderService.finalizarProceso();
+
+      setTimeout(() => {
+        if (pedidoEsSuscripcion) {
+          this.carritoService.reiniciarCarrito();
+        } else {
+          this.carritoService.vaciarCarrito();
+        }
+        this.router.navigateByUrl('/confirmacion');
+      }, 1000);
+    } catch (error) {
+      console.warn('No se ha podido confirmar el pedido contra la API.', error);
+      this.errorConfirmacion = this.translateService.instant('PAYMENT.ERRORS.CONFIRMATION');
+      this.procesandoPago = false;
+    }
   }
 
   private cargarEstadoPerfil(): void {
@@ -419,7 +427,7 @@ export class PagoPage implements OnInit {
 
     const perfilActual = this.profileService.obtenerPerfil();
 
-    await this.profileService.guardarPerfilPersistido({
+    await this.profileService.guardarPerfilPersistidoEstricto({
       ...perfilActual,
       tarjetaPrincipal: {
         nombreTitular: tarjetaActual.nombreTitular,
@@ -475,7 +483,7 @@ export class PagoPage implements OnInit {
       esSuscripcion: pedidoEsSuscripcion
     };
 
-    await this.orderService.guardarPedido(pedido);
+    await this.orderService.guardarPedidoPersistido(pedido);
   }
 
   private calcularFechaEntregaProgramada(): string {

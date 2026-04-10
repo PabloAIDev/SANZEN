@@ -32,6 +32,7 @@ describe('DetallePagePage', () => {
               category: 'Principal',
               units: '350 g',
               ingredients: ['Arroz', 'Pollo'],
+              side_dishes: [],
               calories: 400,
               allergens: [],
               healthScore: 80,

@@ -83,13 +83,18 @@ describe('PagoPage', () => {
             fechaCaducidadTarjetaEsValida: jasmine.createSpy('fechaCaducidadTarjetaEsValida').and.returnValue(true),
             cvvEsValido: jasmine.createSpy('cvvEsValido').and.returnValue(true),
             guardarPerfil: jasmine.createSpy('guardarPerfil'),
-            guardarPerfilPersistido: jasmine.createSpy('guardarPerfilPersistido').and.resolveTo()
+            guardarPerfilPersistido: jasmine.createSpy('guardarPerfilPersistido').and.resolveTo(),
+            guardarPerfilPersistidoEstricto: jasmine.createSpy('guardarPerfilPersistidoEstricto').and.resolveTo()
           }
         },
         {
           provide: SubscriptionService,
           useValue: {
             suscripcionActiva: jasmine.createSpy('suscripcionActiva').and.returnValue(false),
+            suscripcionCompleta: jasmine.createSpy('suscripcionCompleta').and.returnValue(true),
+            tienePlatoSeleccionado: jasmine.createSpy('tienePlatoSeleccionado').and.returnValue(false),
+            persistirSuscripcionActualEstricto: jasmine.createSpy('persistirSuscripcionActualEstricto').and.resolveTo(),
+            refrescarDesdeApi: jasmine.createSpy('refrescarDesdeApi').and.resolveTo(),
             obtenerSuscripcion: jasmine.createSpy('obtenerSuscripcion').and.returnValue({
               activa: false,
               planSemanal: 5,
@@ -109,7 +114,9 @@ describe('PagoPage', () => {
           useValue: {
             generarNumeroPedido: jasmine.createSpy('generarNumeroPedido').and.returnValue('SZ-TEST-0001'),
             obtenerPedidos: jasmine.createSpy('obtenerPedidos').and.returnValue([]),
-            guardarPedido: jasmine.createSpy('guardarPedido').and.resolveTo()
+            guardarPedido: jasmine.createSpy('guardarPedido').and.resolveTo(),
+            guardarPedidoPersistido: jasmine.createSpy('guardarPedidoPersistido').and.resolveTo(),
+            refrescarDesdeApi: jasmine.createSpy('refrescarDesdeApi').and.resolveTo()
           }
         },
         {

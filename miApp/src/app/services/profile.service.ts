@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 import {
   DireccionPrincipal,
   ObjetivoNutricional,
@@ -15,7 +16,7 @@ import { UserSessionService } from './user-session.service';
 })
 export class ProfileService {
   private readonly storageKeyBase = 'sanzen-user-profile';
-  private readonly apiUrl = 'http://localhost:3000/api/perfil';
+  private readonly apiUrl = `${environment.apiBaseUrl}/perfil`;
   private perfilCache: UserProfile = this.obtenerPerfilVacio();
   private cacheUsuarioId: number | null = null;
   private readonly passwordSentinel = '********';
@@ -55,6 +56,15 @@ export class ProfileService {
     this.perfilCache = this.sanitizarPerfilPersistible(perfilNormalizado);
     this.persistirPerfilLocal();
     await this.guardarPerfilEnApi(perfilNormalizado);
+    return this.obtenerPerfil();
+  }
+
+  async guardarPerfilPersistidoEstricto(perfil: UserProfile): Promise<UserProfile> {
+    this.sincronizarCacheConUsuarioActual();
+    const perfilNormalizado = this.normalizarPerfil(perfil);
+    const perfilApi = await this.guardarPerfilEnApiEstricto(perfilNormalizado);
+    this.perfilCache = this.sanitizarPerfilPersistible(this.normalizarPerfil(perfilApi));
+    this.persistirPerfilLocal();
     return this.obtenerPerfil();
   }
 
@@ -233,6 +243,21 @@ export class ProfileService {
       console.warn('No se ha podido guardar el perfil en la API. Se conserva localmente.', error);
       return null;
     }
+  }
+
+  private async guardarPerfilEnApiEstricto(perfil: UserProfile): Promise<UserProfile> {
+    const userId = this.userSessionService.obtenerUsuarioIdActual();
+
+    if (!userId) {
+      throw new Error('No hay usuario activo para guardar el perfil.');
+    }
+
+    return firstValueFrom(
+      this.http.put<UserProfile>(this.apiUrl, {
+        ...perfil,
+        userId
+      })
+    );
   }
 
   private persistirPerfilLocal(): void {

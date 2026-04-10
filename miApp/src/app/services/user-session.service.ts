@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
+import { environment } from '../../environments/environment';
 import { SessionUser } from '../models/session-user.model';
 
 @Injectable({
@@ -8,7 +9,7 @@ import { SessionUser } from '../models/session-user.model';
 })
 export class UserSessionService {
   private readonly storageKey = 'sanzen-session-user';
-  private readonly apiUrl = 'http://localhost:3000/api/auth';
+  private readonly apiUrl = `${environment.apiBaseUrl}/auth`;
   private usuarioActual: SessionUser | null = null;
   private readonly usuarioActualSubject = new BehaviorSubject<SessionUser | null>(null);
   readonly usuarioActual$ = this.usuarioActualSubject.asObservable();

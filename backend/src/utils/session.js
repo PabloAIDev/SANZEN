@@ -1,7 +1,24 @@
 const crypto = require('crypto');
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'sanzen-session-secret-dev';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const DEV_SESSION_SECRET = 'sanzen-session-secret-dev';
+const SESSION_SECRET = getSessionSecret();
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 12;
+
+function getSessionSecret() {
+  const configuredSecret = process.env.SESSION_SECRET?.trim();
+
+  if (configuredSecret) {
+    return configuredSecret;
+  }
+
+  if (IS_PRODUCTION) {
+    throw new Error('SESSION_SECRET es obligatorio cuando NODE_ENV=production.');
+  }
+
+  console.warn('SESSION_SECRET no configurado. Usando secreto de desarrollo solo para entorno local.');
+  return DEV_SESSION_SECRET;
+}
 
 function base64urlEncode(value) {
   return Buffer.from(value).toString('base64url');

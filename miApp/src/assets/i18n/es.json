@@ -342,7 +342,8 @@
       "CARDHOLDER": "Introduce solo letras en el nombre del titular, tal y como aparece en la tarjeta.",
       "CARD_NUMBER": "Introduce una tarjeta de 16 dígitos.",
       "EXPIRY": "Usa el formato MM/AA y una fecha no caducada.",
-      "CVV": "El CVV debe tener exactamente 3 dígitos."
+      "CVV": "El CVV debe tener exactamente 3 dígitos.",
+      "CONFIRMATION": "No se ha podido registrar el pedido en el servidor. Revisa la conexión y vuelve a intentarlo."
     },
     "INSTRUCTIONS_PREFIX": "Instrucciones: {{value}}"
   },

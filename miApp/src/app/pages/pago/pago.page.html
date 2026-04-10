@@ -198,6 +198,10 @@
         {{ 'COMMON.LABELS.TOTAL' | translate }}: {{ obtenerTotal() | currency:'EUR' }}
       </div>
 
+      @if (errorConfirmacion) {
+        <p class="campo-error">{{ errorConfirmacion }}</p>
+      }
+
       <ion-button
         expand="block"
         [disabled]="!puedeConfirmarPedido() || procesandoPago"

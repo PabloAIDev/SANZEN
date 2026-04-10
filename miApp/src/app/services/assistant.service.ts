@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
+import { environment } from '../../environments/environment';
 import {
   AssistantAction,
   AssistantHistoryEntry,
@@ -21,7 +22,7 @@ import { PlatoService } from './plato.service';
   providedIn: 'root'
 })
 export class AssistantService {
-  private readonly apiUrl = 'http://localhost:3000/api/assistant/chat';
+  private readonly apiUrl = `${environment.apiBaseUrl}/assistant/chat`;
   private readonly allowedTargets = new Set([
     '/inicio',
     '/menu',
